@@ -1,4 +1,5 @@
 # Prerequisites
+.obisidian/
 *.d
 
 # Object files

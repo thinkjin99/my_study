@@ -120,8 +120,8 @@ void read_input(int fd, char *write_buffer, char *letter_bytes, char *letter_ind
                 exit(0);
 
             send_msg(fd, write_buffer);
-            printf("%s\n\n", write_buffer);
-            memset(write_buffer, 0, MAX_MESSAGE_LEN);
+            printf("\n\n");
+            // memset(write_buffer, 0, MAX_MESSAGE_LEN);
             memset(letter_bytes, 0, MAX_MESSAGE_LEN);
 
             *byte_len = 0;
@@ -177,7 +177,8 @@ int main()
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(PORT);
     // 54.180.134.95
-    server_address.sin_addr.s_addr = inet_addr("52.78.89.10"); // 서버 IP 주소
+    // server_address.sin_addr.s_addr = inet_addr("52.78.89.10"); // 서버 IP 주소
+    server_address.sin_addr.s_addr = inet_addr("127.0.0.1"); // 서버 IP 주소
 
     struct my_socket socket;
     socket.fd = client_socket;

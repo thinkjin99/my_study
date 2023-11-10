@@ -94,19 +94,203 @@ int sync_none_block_test(int fd, int fd2, char *buffer, char *buffer2)
 ___
 ### Async
 <span class="red-bg"><b>비동기는 동기와 달리 함수의 응답을 호출부에서 신경쓰지 않는다. 비동기 호출부는 함수가 다 완료 됐는지 함수의 결과 값이 무엇인지 궁금해하지 않고 함수를 실행 했다는 사실에만 집중한다. </b></span>응답 값은 나중에 시간이 흐른 후 필요할 때 꺼내서 사용하면 된다.
-비동기는 함수의 완료를 동기와 달리 응답 여부로 판별하지 못한다. 비동기 함수의 호출부는 실행에만 집중하기 때문에 함수 호출에 대한 응답 값은 실행할 수 있다와 실행할 수 없다로만 국한된다. 따라서 동기와 달리 함수의 완료 여부를 호출부에서 확인할 수 없다. 
+비동기는 함수의 완료를 동기와 달리 응답 여부로 판별하지 못한다. 비동기 함수의 호출부는 실행에만 집중하기 때문에 함수 호출에 대한 응답 값은 실행 가능 여부 로만 국한된다. 따라서 동기와 달리 함수의 완료 여부를 호출부에서 확인할 수 없다. 
 ![[스크린샷 2023-11-09 오전 11.32.06.png]]
 
-비동기는 함수의 책임자를 변경하는 듯한 효과를 가진다. 리눅스의 비동기 io인 aio 라이브러리를 살펴보면 io요청을 리퀘스트 큐에 enqueue하고 이를 백 그라운드에서 실행한다. 이후 완료되면 시그널을 발생시켜 함수의 상태를 업데이트 하고 결과 값을 전달 받은 버퍼에 채워넣는다. 이러한 동작 방식을 보면 함수의 호출 부는 함수의 결과에도 실패 유무에도 관계 없이 동작하는 것을 확인 할 수 있다.
+**왜 비동기?**
+비동기는 응답 결과를 호출부에서 신경쓰지 않는 방식으로 동작하는 것이라는 사실은 파악했다. 그렇다면 이러한 방식을 왜 만들었을까? 비동기의 탄생 배경을 확인하기 위해선 우선적으로 동기의 단점을 이해해야한다. 
 
-**Async Example**
+동기-블락킹 방식의 단점을 우선적으로 살펴보자. 해당 방식의 문제점은 함수를 호출한 이후 해당 함수가 완료될 때까지 실행 흐름이 블락 된다는 점에 있다. 만약 해당 작업이 CPU bound 작업이라면 이는 비효율적이지 않지만, IO 작업으로 인해 블락될 경우 CPU의 대기시간이 증가해 프로세스의 처리 속도가 감소할 수 있다. <a href="https://m.blog.naver.com/gngh0101/220678113179">(왜  IO는 CPU를 안써도 될까?)</a>
 
+동기-논블락킹은 위의 단점을 해결한 방식이다. IO 작업을 진행 하더라도 실행 흐름이 완전히 막히지 않아 별도의 작업을 처리할 수 있다. 하지만 시스템 콜을 반복적으로 호출하며 busy-waiting을 유발한다. 또한 시스템 콜을 반복 호출하기에 모드 스위칭으로 인한 오버헤드도 존재한다.
+
+<span class="red-bg"><b>이에 따라 결과를 busy-waiting하지 않으면서 실행 흐름을 막지 않는 방식이 필요해졌고 이것이 바로 우리가 자주 듣는 Asychrnous-None Blocking이다.</b></span> None-Blocking은 함수를 곧장 반환하는 것으로 구현이 가능하지만, 응답을 신경쓰지 않는 것은 어떻게 구현할지 막연하다. 
+
+<span class="red-bg"><b>리눅스의 비동기 지원 aio 라이브러리를 살펴보면 io요청을 리퀘스트 큐에 enqueue하고 이를 백 그라운드에서 실행한다. 이후 완료되면 시그널 혹은 스레드를 사용해 함수의 상태를 업데이트 하고 결과 값을 전달 받은 버퍼에 채워넣는다. </b></span> 
+
+**Async Example** 
+```c
+    int fd = open("example.txt", O_RDONLY);
+
+    if (fd == -1)
+    {
+        perror("Failed to open file");
+        return 1;
+    }
+
+    // Create an aiocb structure to hold information about the asynchronous I/O request
+    struct aiocb my_aiocb;
+    memset(&my_aiocb, 0, sizeof(struct aiocb));
+
+    // Set up the aiocb structure
+    my_aiocb.aio_fildes = fd;
+    my_aiocb.aio_buf = malloc(1024);
+    my_aiocb.aio_nbytes = 1024;
+    my_aiocb.aio_offset = 0;
+
+    // Perform the asynchronous read operation
+    if (aio_read(&my_aiocb) == -1)
+    {
+        perror("aio_read");
+        close(fd);
+        return 1;
+    }
+```
+위의 코드는 비동기 입출력을 진행할 aiocb 객체를 생성하고 aio_read를 활용해 비동기로 데이터를 읽는 작업을 수행한다. ***aio_read를 실행하면 io_request가 생성돼 큐에 저장되며 큐를 통해 해당 작업을 관리한다.*** 
+aio_read의 반환 값은 0과 -1로 0은 큐에 작업이 적절히 저장된 것을 의미하고 -1은 작업이 큐에 들어가지 않는 상황을 의미한다. 에러는 다양한 상황에서 발생할 수 있으며, 큐에 들어가 있는 작업이 너무 많은 경우에도 발생할 수 있다.
+IO는 백 그라운드에서 처리되기 때문에 현재의 실행 흐름을 막지 않고 호출부가 함수의 응답에 관심이 없으므로 이는 명확하게 비동기이다.
+
+<b><u>결과는 어떻게 얻어요?</u></b>
+함수의 반환 값이 0과 -1밖에 없다면 반환 값을 어떻게 얻을지가 궁금해진다. 일반적으로 함수를 호출하면 항상 함수의 실행 결과가 곧장 반환 됐기 때문에 별개의 방법으로 응답 값을 받아야 하는 상황자체가 어색하게 다가온다. 비동기의 반환 값은 큐에 있는 aiocb 객체를 통해 가져올 수 있다. 아래의 코드를 보자.
+```c
+  // Wait for the asynchronous I/O operation to complete
+    while (aio_error(&my_aiocb) == EINPROGRESS)
+    {
+        // Do other work or sleep here
+    }
+
+    // Check for errors in the completed operation
+    if (aio_error(&my_aiocb) != 0)
+    {
+        perror("aio_error");
+        close(fd);
+        return 1;
+    }
+
+    // Process the read data
+    ssize_t bytesRead = aio_return(&my_aiocb);
+    printf("Read %zd bytes: %.*s\n", bytesRead, (int)bytesRead, (char *)my_aiocb.aio_buf);
+
+    // Clean up and close the file
+    free(my_aiocb.aio_buf);
+    close(fd);
+```
+<u><b>while문을 돌면서 aiocb가 담당하는 IO 작업이 완료될 때까지 대기한 후 해당 aiocb가 갖고 있던 버퍼의 값을 읽어오면 된다. 잠깐 그러면 결국 busy-waiting을 해야 하는거 아닌가?</b></u>
+___
+### Signal and Call Back
+비동기는 자신의 종료 여부를 알리는 방식으로 시그널과 콜백을 사용한다. 시그널의 경우 [[Inter Process Communication]]의 대표적인 종류중 하나로 프로세스간 통신을 할때 사용하는 신호를 의미하고 콜백의 경우 호출에 대한 결과로써 호출되는 함수를 의미한다.
+
+* **시그널**
+시그널의 경우 시그널 핸들러와 감지할 시그널을 우선적으로 정의한다. 이후 생성한 시그널 핸들러를 비동기 객체와 연결한다. 비동기 객체에서 특정한 이벤트가 발생했을 때 시그널을 발생 시키고 발생한 시그널을 OS가 감지해 시그널 핸들러를 실행한다. 수도 코드는 아래와 같다.
+```c
+void setup_io( ... )
+{
+  int fd;
+  struct sigaction sig_act;
+  struct aiocb my_aiocb;
+
+  ...
+
+  /∗ Set up the signal handler ∗/
+  sigemptyset(&sig_act.sa_mask);
+  sig_act.sa_flags = SA_SIGINFO;
+  sig_act.sa_sigaction = aio_completion_handler;
+
+
+  /∗ Set up the AIO request ∗/
+  bzero( (char ∗)&my_aiocb, sizeof(struct aiocb) );
+  my_aiocb.aio_fildes = fd;
+  my_aiocb.aio_buf = malloc(BUF_SIZE+1);
+  my_aiocb.aio_nbytes = BUF_SIZE;
+  my_aiocb.aio_offset = next_offset;
+
+  /∗ Link the AIO request with the Signal Handler ∗/
+  my_aiocb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+  my_aiocb.aio_sigevent.sigev_signo = SIGIO;
+  my_aiocb.aio_sigevent.sigev_value.sival_ptr = &my_aiocb;
+
+  /∗ Map the Signal to the Signal Handler ∗/
+  ret = sigaction( SIGIO, &sig_act, NULL );
+
+  ...
+
+  ret = aio_read( &my_aiocb );
+
+}
+
+
+void aio_completion_handler( int signo, siginfo_t ∗info, void ∗context )
+{
+  struct aiocb ∗req;
+
+
+  /∗ Ensure it's our signal ∗/
+  if (info‑>si_signo == SIGIO) {
+
+    req = (struct aiocb ∗)info‑>si_value.sival_ptr;
+
+    /∗ Did the request complete? ∗/
+    if (aio_error( req ) == 0) {
+
+      /∗ Request completed successfully, get the return status ∗/
+      ret = aio_return( req );
+
+    }
+
+  }
+
+  return;
+}
+```
+
+* **콜백**
+콜백도 위와 흡사하게 동작한다. 콜백 함수를 정의한 후 콜백 함수와 비동기 객체를 연결하는 작업을 진행한다. 연결된 콜백함수는 비동기 작업이 마무리 되면 자동적으로 실행된다. 작업이 마무리가 됐다는 것과 콜백을 실행하는 작업은 모두 OS가 처리해준다. 수도 코드는 아래와 같다.
+``` c
+void setup_io( ... )
+{
+  int fd;
+  struct aiocb my_aiocb;
+
+  ...
+
+  /∗ Set up the AIO request ∗/
+  bzero( (char ∗)&my_aiocb, sizeof(struct aiocb) );
+  my_aiocb.aio_fildes = fd;
+  my_aiocb.aio_buf = malloc(BUF_SIZE+1);
+  my_aiocb.aio_nbytes = BUF_SIZE;
+  my_aiocb.aio_offset = next_offset;
+
+  /∗ Link the AIO request with a thread callback ∗/
+  my_aiocb.aio_sigevent.sigev_notify = SIGEV_THREAD;
+  my_aiocb.aio_sigevent.notify_function = aio_completion_handler;
+  my_aiocb.aio_sigevent.notify_attributes = NULL;
+  my_aiocb.aio_sigevent.sigev_value.sival_ptr = &my_aiocb;
+
+  ...
+
+  ret = aio_read( &my_aiocb );
+
+}
+
+
+void aio_completion_handler( sigval_t sigval )
+{
+  struct aiocb ∗req;
+
+  req = (struct aiocb ∗)sigval.sival_ptr;
+
+  /∗ Did the request complete? ∗/
+  if (aio_error( req ) == 0) {
+
+    /∗ Request completed successfully, get the return status ∗/
+    ret = aio_return( req );
+
+  }
+
+  return;
+}
+```
+
+<span class="red-bg"><b>이러한 시그널과 콜백을 활용하면 계속해서 결과를 신경 쓸 필요 없이 결과의 완료 소식만을 확인해주면 된다.  </b></span> 이는 비동기의 핵심적인 속성 중의 하나로 이를 활용해야 비동기를 비동기 답게 활용할 수 있다.
+___
+### Multiple-IO with Async
+비동기의 꽃은 다중 IO라고 할 수 있는데 지금까지 학습한 논 블락킹, 콜백 등의 요소를 조합해서 가장 효율적으로 다중 IO를 처리하는 코드를 구축해보자.
 
 
 
 ### Blocking and None-Blocking
 
-### Blocking IO and None-Blocking IO
+### Async CPU Bound
 
 ### Event Loop
 

@@ -68,7 +68,7 @@ int main()
         perror("Failed to open file");
         return 1;
     }
-    // sync_none_block_test(fd, fd2, buffer, buffer2);
+    sync_none_block_test(fd, fd2, buffer, buffer2);
     read_file(fd, buffer);
     close(fd);
     close(fd2);

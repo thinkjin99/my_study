@@ -12,7 +12,7 @@ func printRunning(done chan bool) {
 		fmt.Println("Running...")
 		time.Sleep(time.Second)
 
-		// select로 1초마다 done 채널 확인하기
+		// select로 done 채널 확인하기
 		select {
 		case <-done:
 			return

@@ -38,18 +38,18 @@ int sync_none_block_test(int fd, int fd2, char *buffer, char *buffer2)
     while (1)
     {
         bytesRead = none_block_read(fd, buffer);
-        printf("Check 1 is end\n");
+        printf("Check Large is end\n");
         bytesRead2 = none_block_read(fd2, buffer2);
-        printf("Check 2 is end\n");
+        printf("Check Samll is end\n");
 
         if (bytesRead == 0)
         {
-            printf("1 fished!\n");
+            printf("Large fished!\n");
             break;
         }
         else if (bytesRead2 == 0)
         {
-            printf("2 fished!\n");
+            printf("Small fished!\n");
             break;
         }
         printf("Read %zd bytes: %.*s\n", bytesRead, (int)bytesRead, buffer);

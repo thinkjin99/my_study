@@ -22,8 +22,8 @@ def load_url(url, timeout):
 
 
 def print_log(future: concurrent.futures.Future):
-    url, res = future.result()
-    print(f"Done {url} page status {res}")
+    res = future.result()
+    print(f"Done page {res}")
 
 
 async def async_multy(url):
@@ -35,7 +35,7 @@ async def async_multy(url):
         None, requset
     )  # requset 대기 부분을 await로 처리해 비동기로 작동하게 한다.
     print(f"Done {url} page", end=" ")
-    print(f"Data bytes {len(response.read())}")
+    # print(f"Data bytes {len(response.read())}")
     return url, response
 
 
@@ -58,7 +58,7 @@ def future_multy():
 
 def sync_multy():
     for url in URLS:
-        url, res = load_url(url, 5)
+        res = load_url(url, 5)
         print(f"Done {url} page status {res}")
 
 
@@ -72,5 +72,5 @@ def timer(func, *args, **kwargs):
 
 if __name__ == "__main__":
     # timer(sync_multy)
-    # timer(future_multy)
-    asyncio.run(main())
+    timer(future_multy)
+    # asyncio.run(main())

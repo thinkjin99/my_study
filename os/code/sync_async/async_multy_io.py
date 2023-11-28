@@ -17,13 +17,14 @@ URLS = [
 def load_url(url, timeout):
     with urllib.request.urlopen(url, timeout=timeout) as conn:
         print(f"Run {url}")
-        return conn  # read is blocking
+        # return conn.read()  # read is blocking
+        return conn
         # return url, conn.status
 
 
 def print_log(future: concurrent.futures.Future):
     res = future.result()
-    print(f"Done page {res}")
+    print(f"page read {res}")
 
 
 async def async_multy(url):
@@ -34,8 +35,8 @@ async def async_multy(url):
     response = await loop.run_in_executor(
         None, requset
     )  # requset 대기 부분을 await로 처리해 비동기로 작동하게 한다.
-    print(f"Done {url} page", end=" ")
-    # print(f"Data bytes {len(response.read())}")
+    # print(f"Done {url} page", end=" ")
+    print(f"Data bytes {len(response.read())}")
     return url, response
 
 
@@ -59,7 +60,7 @@ def future_multy():
 def sync_multy():
     for url in URLS:
         res = load_url(url, 5)
-        print(f"Done {url} page status {res}")
+        print(f"Done {url} page {res}")
 
 
 def timer(func, *args, **kwargs):

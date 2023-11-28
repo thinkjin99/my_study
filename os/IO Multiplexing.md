@@ -1,8 +1,16 @@
 ### 출처
-
+* https://rammuking.tistory.com/entry/Epoll%EC%9D%98-%EA%B8%B0%EC%B4%88-%EA%B0%9C%EB%85%90-%EB%B0%8F-%EC%82%AC%EC%9A%A9-%EB%B0%A9%EB%B2%95 (epoll 기초)
+* https://www.marccostello.com/async-await-pitfall-1-blocking-async-calls/ (async-await in python)
+* https://reakwon.tistory.com/117 (select)
+* https://stackoverflow.com/questions/17355593/why-is-epoll-faster-than-select (epoll vs select
+* https://niklasjang.github.io/backend/select-poll-epoll/ (epoll & select)
 ___
 ### 개요
-
+[[#Intro]]
+[[#Why Async-Blocking is bad]]
+[[#await]]
+[[#select]]
+[[#epoll]]
 ___
 ### Intro
 지난시간 [[동기와 비동기 (Blocking, None-Blocking)]]를 학습하며 동기, 비동기의 차이 Blocking, None-Blocking의 차이를 학습했다. 동기는 호출 결과를 신경쓰는 방식, 블락킹은 함수의 실행 흐름이 정체되는 현상이라는 것을 기억할 것이다. 또한 비동기와 논-블락킹은 이들 각각과 상반된 키워드들이라는 것까지 떠올릴 수 있어야 한다. 이제 이러한 키워드들이 어디서 어떻게 사용 되는지를 파악할 것이다. 
@@ -165,19 +173,63 @@ def sync_busy_wait():
 
 ![[Pasted image 20231121183520.png]]
 
-fd값이 3인 소켓의 이벤트를 확인하고 싶은 경우 다음과 같이 동작한다. **select()는 계속해서 3까지의 모든 fd에 대한 이벤트를 조사하다 3에 이벤트가 발생할 경우 FD_SET의 해당 fd 인덱스의 값을 1로 활성화 한다. 이는 타임아웃이 발생할 때까지 계속된다.**
+fd값이 3인 소켓의 이벤트를 확인하고 싶은 경우 다음과 같이 동작한다. **select()는 계속해서 3까지의 모든 fd에 대한 이벤트를 조사하다 3에 이벤트가 발생할 경우 FD_SET의 해당 fd 인덱스의 값을 1로 활성화 한다.** 이는 타임아웃이 발생할 때까지 반복되는데 <b><u>관심있는 FD는 3번 하나인데 이를 위해 4개를 감시해야하니 무척 비효율적이다.</u></b> 이후 이벤트가 발생한 fd에서 데이터를 읽은 후 FD_SET을 다시 초기화 해준다.
 
 ![[Pasted image 20231121183535.png]]
 
-이후 FD_ISSET은 매크로 함수로 fd_set의 특정 인덱스가 활성화 됐는지를 검사한다. 활성화 됐다면 이벤트가 발생했다는 의미이므로 데이터를 수신할 수 있다.
+따라서 select의 동작순서를 정리하면 다음과 같다.
 
-select를 활용하면 다중 IO를 배열에 등록해두고 FD_SET을 계속해서 순회하는 방식으로 이벤트를 감지할 수 있다. 하지만 이 역시 <b><u>FD_SET을 계속해서 순회해야 한다는 점과 등록할 수 있는 디스크립터의 수가 제한적이라는 한계로 인해 현재는 잘 사용되지 않는다.</u></b>
+1. 내가 관심있는 fd + 1 크기의 FD_SET 큐를 생성한다.
+2. 해당 큐를 루프하며 이벤트를 탐지한다. 
+3. 이벤트를 탐지한 후에는 다시 FD_SET을 비활성화로 초기화 한다.
+
+C언어로 작성된 select 사용 예시를 살펴보면 확인할 수 있다.
+
+```c
+while (1)
+	{
+		FD_ZERO(&readFds); //파일 디스크립터 집합 초기화
+		FD_SET(socket->socket, &readFds); //집합에 파일 디스크립터 등록
+		select(socket->socket + 1, &readFds, NULL, NULL, &timeout); //타임아웃까지 집합 검사
+
+		if (FD_ISSET(socket->socket, &readFds)) //fd에 이벤트가 발생했는지 커널에 질문
+		{
+			rx_len = read(socket->socket, socket->buffer, MAX_MESSAGE_LEN); //read
+			if (rx_len > 0)
+			{
+				printf("\n%s\n", socket->buffer);
+				memset(socket->buffer, 0, MAX_MESSAGE_LEN);
+			}
+			else
+			{
+				printf("Fail to read data\n");
+				exit(0);
+			}
+		}
+	}
+    return NULL;
+```
+
+<span class="red red-bg"><b>이러한 방식에는 문제가 있는데, 가뜩이나 비효율적으로 큰 FD_SET을 매번 검사하고 초기화하는 작업을 반복해야 한다는 것이다.</b></span>  select를 활용하면 단일 스레드에서 다중 IO를 구현할 수 있지만, FD_SET을 비효율적으로 관리하는 문제, fd의 수가 제한적이라는 문제 등으로 인해 잘 활용하진 않는다.
 ___
 ### epoll
-epoll은 select의 단점을 보완해 만든 IO 감지 모델을 말한다. 파일 디스크립터를 유저가 아닌 커널이 관리를 하며, 이로 인해 CPU가 직접 FD_SET을 루프로 순회하며 이벤트를 감지할 필요가 없다. epoll은 커널에서 이벤트를 감지하며 이벤트가 발생할 경우 해당 파일 디스크립터를 파악해 커널에서 유저 영역으로 복사해주는 방식으로 동작한다. 
+epoll은 select의 단점을 보완해 만든 IO 감지 모델을 말한다. select의 문제점은 아래와 같았다.
 
+1. 관심있는 fd만 탐지하는 것이 불가능 함.
+2. fd를 연속으로 탐지해야 하기에 FD_SET의 크기가 큼
+3. 유저와 커널이 소통할 일이 잦음 (FD_ISSET)
 
+**epoll은 내가 이벤트를 감지하고 싶은 FD_SET을 특정해 커널에 전달할 수 있다.** 따라서 관심있는 fd의 이벤트만을 감지하는 것이 가능하다. 또한 커널에서 FD_SET을 관리하기 때문에 유저-커널 통신으로 인한 오버헤드가 적은 편이다. epoll은 다음과 같이 동작한다.
+
+1. epoll 객체를 생성
+2. epoll_ctl을 통해 등록할 fd와 이벤트 등을 설정한다.
+3. epoll_wait를 통해 이벤트가 발생한 fd와 발생한 이벤트를 전달 받는다.
+
+epoll역시 FD_SET을 루프하고 있지만, FD_SET이 커널 영역에 위치해 유저 영역에서 루프를 돌던 select에 비해 리소스가 적게 든다. 또한 <span class="red-bg red"><b>epoll은 select와 달리 관심있는 fd만을 루프하기 때문에 소요시간이 훨씬 적고 이를 관리하는 작업의 규모도 작다.</b></span>
+
+> [!info]
+> epoll은 관심있는 fd만 등록해 이벤트를 감지하고 커널에서 처리하는 방식이다.
 
 ___
-### Event Loop
+
 

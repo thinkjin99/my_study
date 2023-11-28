@@ -3,9 +3,10 @@
 ___
 ### 개요
 * [[#Sync]]
-* [[#Blocking and None-Blocking]]
-* [[#Blocking IO and None-Blocking IO]]
-* [[#Event Loop]]
+* [[#Sync Example]]
+* [[#Async]]
+* [[#Busy-wait in Async?]]
+* [[#Signal and Call Back]]
 ___
 ### Sync
 <span class="red-bg"><b>동기와 비동기는 함수의 응답을 누가 신경을 쓰느냐에 따라 구분된다. 동기는 함수의 응답을 호출부에서 신경을 계속해서 쓰는 방식을 말하고 비동기는 신경을 쓰지 않는 방식을 말한다.</b></span>

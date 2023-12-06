@@ -177,8 +177,8 @@ int main()
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(PORT);
     // 54.180.134.95
-    // server_address.sin_addr.s_addr = inet_addr("52.78.89.10"); // 서버 IP 주소
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1"); // 서버 IP 주소
+    server_address.sin_addr.s_addr = inet_addr("52.78.89.10"); // 서버 IP 주소
+    // server_address.sin_addr.s_addr = inet_addr("127.0.0.1"); // 서버 IP 주소
 
     struct my_socket socket;
     socket.fd = client_socket;

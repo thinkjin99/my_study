@@ -35,8 +35,8 @@ async def async_multy(url):
     response = await loop.run_in_executor(
         None, requset
     )  # requset 대기 부분을 await로 처리해 비동기로 작동하게 한다.
-    # print(f"Done {url} page", end=" ")
-    print(f"Data bytes {len(response.read())}")
+    print(f"Done {url} page", end=" ")
+    # print(f"Data bytes {len(response.read())}")
     return url, response
 
 
@@ -73,5 +73,5 @@ def timer(func, *args, **kwargs):
 
 if __name__ == "__main__":
     # timer(sync_multy)
-    timer(future_multy)
-    # asyncio.run(main())
+    # timer(future_multy)
+    asyncio.run(main())

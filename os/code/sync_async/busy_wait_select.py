@@ -55,5 +55,5 @@ def sync_busy_wait():
 
 
 if __name__ == "__main__":
-    print(sync_busy_wait())
-    # print(sync_select())
+    # print(sync_busy_wait())
+    print(sync_select())

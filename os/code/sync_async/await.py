@@ -11,7 +11,7 @@ async def do_something(i: int):
 
 async def main():
     tasks = [asyncio.create_task(do_something(i)) for i in range(3)]
-    # await asyncio.gather(*tasks) #wait for end...
+    await asyncio.gather(*tasks) #wait for end...
 
 
 if __name__ == "__main__":

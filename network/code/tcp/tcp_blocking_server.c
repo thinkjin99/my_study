@@ -73,27 +73,15 @@ int main()
 
     while (1)
     {
-        // client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len); // 클라이언트 커넥션 할당
-        pthread_t tid;
+        client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len); // 클라이언트 커넥션 할당
         struct listen_socket sc;
         sc.fd = server_socket;
-        if (pthread_create(&tid, NULL, accept_connection, &sc) != 0)
-        {
-            perror("Thread not created");
-            exit(0);
-        };
-
-        sleep(1);
-        pthread_cancel(tid);
-        pthread_join(tid, NULL);
-
         for (int i = 0; i < client_cnt; i++)
         {
             memset(buffer, 0, MAX_MESSAGE_LEN);
-            // select를 추가
-            read(clients[i], buffer, MAX_MESSAGE_LEN);
+            read(client_socket, buffer, MAX_MESSAGE_LEN);
             printf("Client:%d says %s\n", clients[i], buffer);
-            write(clients[i], buffer, MAX_MESSAGE_LEN);
+            write(client_socket, buffer, MAX_MESSAGE_LEN);
         }
     }
     return 0;

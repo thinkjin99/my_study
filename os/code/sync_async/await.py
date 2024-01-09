@@ -1,7 +1,6 @@
 import asyncio
 import random
 
-
 async def do_something(i: int):
     sec = random.randint(1, 10)
     print(f"{i} Wait for {sec}...")  # random wait...

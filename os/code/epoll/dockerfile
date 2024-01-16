@@ -1,0 +1,25 @@
+# 베이스 이미지 설정
+FROM ubuntu:20.04
+
+# 환경 변수 설정
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 패키지 업데이트 및 필요한 패키지 설치
+RUN apt-get update -y
+
+RUN apt-get install -y \
+    gcc \
+    git \
+    vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 작업 디렉토리 설정 (원하는 디렉토리로 변경 가능)
+WORKDIR /usr/src/app
+
+RUN git clone https://github.com/libuv/libuv.git
+
+COPY ./server.c .
+
+# 도커 컨테이너가 시작될 때 실행할 명령 (예: 셸 실행)
+CMD ["/bin/bash"]

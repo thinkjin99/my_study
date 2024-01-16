@@ -274,19 +274,7 @@ ___
 ### epoll 써먹기
 
 아래는 epoll을 활용한 실제 TCP 소켓 서버이다. 코드를 살펴보자.
-
 ```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/epoll.h>
-
-#define MAX_EVENTS 10
-#define BUF_SIZE 1024
-
-// Define client structure
 typedef struct {
     int sockfd;
     char buffer[BUF_SIZE];
@@ -297,7 +285,10 @@ void initClient(Client *client, int sockfd) {
     client->sockfd = sockfd;
     memset(client->buffer, 0, sizeof(client->buffer));
 }
+```
+클라이언트 연결을 구조체를 활용해 표현한다. 클라이언트 구조체는 소켓과 해당 소켓의 버퍼를 포함한다.
 
+```c
 // Receive data from a client
 void receiveData(Client *client) {
     ssize_t bytesRead = recv(client->sockfd, client->buffer, sizeof(client->buffer), 0);
@@ -313,8 +304,106 @@ void receiveData(Client *client) {
         close(client->sockfd);
     }
 }
+```
+클라이언트로 부터 전달된 데이터를 읽는다. 이후 소켓 버퍼를 비워주는 작업을 진행한다. 
 
-int main() {
+```c
+listen(serverSockfd, SOMAXCONN);
+
+// Create epoll instance
+epollfd = epoll_create1(0);
+struct epoll_event event;
+event.events = EPOLLIN; //이벤트 타입으로 read 이벤트를 의미한다.
+event.data.fd = serverSockfd; //리스닝 소켓 등록
+epoll_ctl(epollfd, EPOLL_CTL_ADD, serverSockfd, &event); //인스턴스의 구독 리스트에 추가
+```
+
+**epoll 인스턴스를 생성하고 이벤트를 정의해 서버의 리스닝 소켓의 read 이벤트를 구독 리스트에 등록한다**. 이후 리스닝 소켓에서 READ가 가능해지면 해당 이벤트는 ready 리스트로 이동하고 epoll 인스턴스는 이를 접근해 이벤트가 발생했다는 것을 사용자가 알수 있게한다.
+
+```c
+while (1) { // 이벤트 루프의 시작
+	int numEvents = epoll_wait(epollfd, events, MAX_EVENTS, -1); //이벤트가 발생할 때 까지 블락
+	for (int i = 0; i < numEvents; ++i) {
+		if (events[i].data.fd == serverSockfd) { //발생한 이벤트가 리스닝 소켓이면
+			// Accept a new connection
+			clientSockfd = accept(serverSockfd, (struct sockaddr *)&clientAddr, &clientAddrLen); //연결 수립
+			printf("Accepted a new connection from %s:%d\n",
+				   inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+
+			// Initialize and add the new client to epoll
+			initClient(&clients[clientSockfd], clientSockfd); //클라이언트 정보 설정
+			event.events = EPOLLIN; //읽기 이벤트 
+			event.data.fd = clientSockfd; //수립한 클라이언트 커넥션
+			epoll_ctl(epollfd, EPOLL_CTL_ADD, clientSockfd, &event); //이벤트 구독
+		} else {
+			// Receive data from an existing client
+			receiveData(&clients[events[i].data.fd]); //클라이언트에서 이벤트 발생시 
+		}
+	}
+}
+```
+
+==**반복문을 순회 하면서 이벤트가 발생할 때까지 잠깐 대기를 진행**==한다. 이벤트가 발생했을 경우 이벤트가 어떤 fd에서 발생했는지를 확인해 리스닝 소켓일 경우 연결을 수립하고 아닐 경우 메시지를 읽는 작업을 수행한다. 
+
+<span class="red red-bg"><b>연결 수립시 새로 수립한 연결에 대한 read 이벤트를 생성하고 이를 리스트에 등록하는 작업 또한 진행한다. 이를 통해 신규로 성립된 클라이언트 커넥션에 대한 이벤트도 인스턴스를 통해 파악 가능해진다.</b></span>
+
+이러한 구조는 <b><u>이벤트 루프에 대한 대표적 예시이며 이를 통해 이벤트에 대한 적절한 리스닝 및 핸들링이 가능해진다.</u></b>
+
+>[!info]
+>**epoll은 이벤트 루프의 핵심이며 이를 통해 싱글 쓰레드에서의 멀티 IO를 효율적으로 구현할 수 있다.**
+
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/epoll.h>
+
+#define MAX_EVENTS 10
+#define BUF_SIZE 1024
+
+// Define client structure
+typedef struct
+{
+    int sockfd;
+    char buffer[BUF_SIZE];
+} Client;
+
+// Initialize client
+void initClient(Client *client, int sockfd)
+{
+    client->sockfd = sockfd;
+    memset(client->buffer, 0, sizeof(client->buffer));
+}
+
+// Receive data from a client
+void doEcho(Client *client)
+{
+    ssize_t bytesRead = recv(client->sockfd, client->buffer, sizeof(client->buffer), 0);
+
+    if (bytesRead > 0)
+    {
+        client->buffer[bytesRead] = '\0';
+        printf("Received data from client %d: %s\n", client->sockfd, client->buffer);
+        send(client->sockfd, client->buffer, bytesRead, 0);
+    }
+
+    else if (bytesRead == 0)
+    {
+        printf("Connection closed by client %d\n", client->sockfd);
+        close(client->sockfd);
+    }
+    else
+    {
+        perror("Error in recv");
+        close(client->sockfd);
+    }
+}
+
+int main()
+{
     int serverSockfd, clientSockfd;
     struct sockaddr_in serverAddr, clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);
@@ -337,32 +426,36 @@ int main() {
     // Create epoll instance
     epollfd = epoll_create1(0);
     struct epoll_event event;
-    event.events = EPOLLIN;
-    event.data.fd = serverSockfd;
-    epoll_ctl(epollfd, EPOLL_CTL_ADD, serverSockfd, &event);
+    event.events = EPOLLIN;                                  // 해당 fd에 읽을 수 있는 데이터가 존재할 때 발생하는 이벤트
+    event.data.fd = serverSockfd;                            // 리스닝 소켓 등록
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, serverSockfd, &event); // 인스턴스의 구독 리스트에 추가
 
     printf("Server is listening on port 12345\n");
 
     // Client array to store connected clients
     Client clients[MAX_EVENTS];
 
-    while (1) {
+    while (1)
+    {
         int numEvents = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-        for (int i = 0; i < numEvents; ++i) {
-            if (events[i].data.fd == serverSockfd) {
+        for (int i = 0; i < numEvents; ++i)
+        {
+            if (events[i].data.fd == serverSockfd)
+            {
                 // Accept a new connection
                 clientSockfd = accept(serverSockfd, (struct sockaddr *)&clientAddr, &clientAddrLen);
-                printf("Accepted a new connection from %s:%d\n",
-                       inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+                printf("Accepted a new connection from %s:%d\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
 
                 // Initialize and add the new client to epoll
                 initClient(&clients[clientSockfd], clientSockfd);
                 event.events = EPOLLIN;
                 event.data.fd = clientSockfd;
                 epoll_ctl(epollfd, EPOLL_CTL_ADD, clientSockfd, &event);
-            } else {
+            }
+            else
+            {
                 // Receive data from an existing client
-                receiveData(&clients[events[i].data.fd]);
+                doEcho(&clients[events[i].data.fd]);
             }
         }
     }
@@ -374,6 +467,106 @@ int main() {
     return 0;
 }
 
+
 ```
 
+mac에서는 epoll이 아닌 kqueue를 사용하기 때문에 위의 코드를 실행하기 위해선 도커를 사용해야 한다.
 
+```dockerfile
+# 베이스 이미지 설정
+FROM ubuntu:20.04
+
+# 환경 변수 설정
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 패키지 업데이트 및 필요한 패키지 설치
+RUN apt-get update -y
+
+RUN apt-get install -y \
+    gcc \
+    git \
+    vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 작업 디렉토리 설정 (원하는 디렉토리로 변경 가능)
+WORKDIR /usr/src/app
+
+RUN git clone https://github.com/libuv/libuv.git
+
+COPY ./server.c .
+
+# 도커 컨테이너가 시작될 때 실행할 명령 (예: 셸 실행)
+CMD ["/bin/bash"]
+
+```
+
+위의 도커 파일을 설정한 후 아래의 커맨드를 입력한다. 이후 접속한 터미널에서 server.c를 컴파일 후 실행하면 된다.
+```bash
+docker build -t epoll .
+docker run --rm -it -p 8080:12345 epoll:latest
+
+#컨테이너 터미널 접속 이후
+gcc server.c && ./a.out
+```
+
+테스트를 위한 클라이언트 코드는 아래와 같다.
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
+int main()
+{
+
+    struct sockaddr_in server_addr;
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8080);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    int sockfd;
+    if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        printf("couldn't create socket\n");
+        return 1;
+    }
+    printf("socket created\n");
+
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
+        printf("couldn't connect\n");
+        return 1;
+    }
+    printf("connected to the server\n");
+
+    char msg[100], server_msg[100];
+
+    while (1)
+    {
+        printf("write message : ");
+        scanf("%[^\n]%*c", msg);
+        send(sockfd, msg, sizeof(msg), 0);
+
+        memset(server_msg, 0, sizeof(server_msg));
+        recv(sockfd, server_msg, sizeof(server_msg), 0);
+        printf("Server reply : %s\n", server_msg);
+
+        if (strcmp(server_msg, "bye") == 0)
+        {
+            printf("exiting...\n");
+            break;
+        }
+    }
+
+    close(sockfd);
+
+    return 0;
+}
+```

@@ -352,7 +352,6 @@ while (1) { // 이벤트 루프의 시작
 >[!info]
 >**epoll은 이벤트 루프의 핵심이며 이를 통해 싱글 쓰레드에서의 멀티 IO를 효율적으로 구현할 수 있다.**
 
-
 ```c
 #include <stdio.h>
 #include <stdlib.h>

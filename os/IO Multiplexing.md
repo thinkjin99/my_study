@@ -249,6 +249,7 @@ epoll역시 FD_SET을 루프하고 있지만, FD_SET이 커널 영역에 위치�
 
 > [!info]
 > epoll은 관심있는 fd만 등록해 이벤트를 감지하고 커널에서 처리하는 방식이다.
+
 # Issue #6
 ## Epoll의 FD_LIST 위치는 Kernel mode에 존재
 - 기존 select의 단점을 보완하여 설계 되어짐
@@ -593,8 +594,8 @@ int main()
     return 0;
 }
 ```
-
 _____
+
 
 
 

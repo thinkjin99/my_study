@@ -3,10 +3,19 @@
 * https://bentist.tistory.com/89?category=1010744 (비동기 개요)
 * https://it-eldorado.tistory.com/159 (테스크의 스케줄링 방법)
 * https://tech.buzzvil.com/blog/asyncio-no-1-coroutine-and-eventloop/ (실습 예제)
-* https://soooprmx.com/asyncio/ (테스크, 코루틴, 퓨처)
+* https://soooprmx.com/asyncio/ (테스크, 코루틴, 퓨처
+* https://stackoverflow.com/questions/49005651/how-does-asyncio-actually-work (파이썬의 asyncio)
 ___
 ### 개요
-
+* [[#Async / Await]]
+* [[#Async/Await 의 동작방식]]
+* [[#Corutine]]
+* [[#파이썬의 이벤트 루프]]
+* [[#Task]]
+* [[#Futures]]
+* [[#Corutine, Future, Task 한눈에 보기]]
+* [[#파이썬 async의 실행 흐름 자세하게]]
+* [[#await 주의점]]
 ___
 ### Async / Await
 
@@ -118,7 +127,7 @@ ___
 
 앞서 말했듯이 async/await는 상태를 저장하고 함수를 교체하는 작업을 수행한다. 이에 따라 <span class ="red red-bg"><b>실행 흐름을 기억 했다 다시 실행하는 방식의 동작이 가능한 특별한 형태의 함수를 사용해야 하는데 이것이 코루틴이다.</b></span>
 
-**코루틴이 (await, yield)등을 통해 인위적으로 다른 곳으로 권한을 양도하면 자신의 실행과 관련된 상태를 어딘가에 저장하고 실행을 중지**한다. 이후 다시금 코루틴을 실행하면 중지했던 부분에서 다시 상태를 복원해 작업을 진행한다. 코루틴은  제네레이터와 흡사하지만 **제네레이터와 달리 초기화 이후 값을 전달받는 것이 가능하며 매개변수를 받을 수 있는 제네레이터로서 동작한다.**
+**코루틴이 (await, yield)등을 통해 인위적으로 다른 곳으로 권한을 양도하면 자신의 실행과 관련된 상태를 어딘가에 저장하고 실행을 중지**한다. 이후 다시금 코루틴을 실행하면 중지했던 부분에서 다시 상태를 복원해 작업을 진행한다. 코루틴은 제네레이터와 흡사하지만 **제네레이터와 달리 초기화 이후 값을 전달받는 것이 가능하며 매개변수를 받을 수 있는 제네레이터로서 동작한다.**
 
 코루틴 객체를 만들기 위해서는 async 키워드를 서브 루틴 앞에 추가하면 된다. 이때 주의할 점은 <b><u>코루틴은 함수와 달리 호출을 해도 함수 내부의 코드가 동작하지 않고 코루틴 객체를 반환 한다는 것이다. </u></b> 함수 내부의 코드를 동작시켜 결과 값을 얻기 위해서는 await 구문을 활용해야 한다.
 
@@ -327,3 +336,37 @@ async def main():
 
 #### 코루틴의 종료
 이렇게 실행을 진행하다보면 언젠가 return을 통해 종료되는 코루틴을 만나게 된다. 코루틴이 종료되면 테스크의 **`__step()`은 StopIteration을 만나게 되고 이로 인해 종료**하게 된다. StopIteration이 반환되면 코루틴의 반환 값을 테스크의 result 필드에 저장한다. 이후 테스크는 더 이상 스케줄링 되지 않고 완전히 종료된다.
+
+___
+### await 주의점
+
+#### await가 항상 권한을 양도하진 않는다
+<b><u>await를 실행할 경우 권한을 항상 이벤트 루프에 양도하진 않는다. 루프에 권한을 양도하는 경우는 코루틴의 실행 결과로 퓨처 객체가 반환되는 경우 만이다.</u></b> 아래의 예제를 보자.
+
+```python
+import asyncio
+
+
+async def aprint(s):
+    print(s)
+
+
+async def forever(s):
+    while True:
+        await aprint(s)
+        # await asyncio.sleep(0)
+
+
+async def main():
+    await asyncio.gather(forever("a"), forever("b"))
+
+
+asyncio.run(main())
+```
+
+`gather()`에 코루틴을 등록할 경우 자동으로 테스크 객체로 래핑이 되기 때문에 이벤트 루프에는 2개의 테스크가 존재하게 된다. 이에 따라 `forever(a)`가 실행중 await를 만난다면 `forever(b)`로 스위칭이 발생해야 하지만, 코드를 실행해보면 스위칭 없이 a만 계속해서 출력되는 것을 확인할 수 있다.
+
+이와 같은 현상이 발생하는 이유는 **코루틴의 실행 결과가 퓨처 객체가 아니기 때문에 `forever(a)` 가 실행 권한을 루프로 반환하지 않고 계속해서 사용하기 때문**이다. 따라서 강제로 스위칭을 발생시키고 싶다면 해당 코루틴의 결과가 퓨처 객체로 반환될 수 있게 인위적으로 `sleep`을 추가해주면 된다.
+
+#### await coro != await task
+코루틴을 await하는 것과 task를 await하는 것은 다르다. 코루틴을 await하면 곧장 코루틴을 실행하는 반면 task를 await하면 이벤트 루프에 해당 테스크를 등록하고 이벤트 루프로 실행권한을 넘긴다. 따라서 코루틴을 곧장 await할 경우 바로 실행되지만, 태스크의 경우 곧장 실행되지 않을 수 있다.

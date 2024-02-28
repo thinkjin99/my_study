@@ -29,7 +29,7 @@ DNS는 도메인에 따른 ip 주소만을 넘겨주면 모든 작업을 마친�
 > [!info]
 > UDP는 빠르지만 신뢰성을 갖지는 않는다. TCP가 캐치볼이면 UDP는 기관총 난사다.
 
-![[스크린샷 2023-12-01 오후 10.04.17.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/UDP%20%ED%86%BA%EC%95%84%EB%B3%B4%EA%B8%B0%20%28%2BTCP%EC%99%80%20%EC%B0%A8%EC%9D%B4%29%20/%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202023-12-01%20%EC%98%A4%ED%9B%84%2010.04.17.png)
 
 ___
 ### 유튜브는 UDP를 쓸까?
@@ -44,7 +44,7 @@ ___
 ___
 ### UDP와 DDOS
 앞서 보안 이슈로 인해  UDP를 사용하지 않는 것일 수도 있다 했는데 실제로 UDP를 활용하면 DDOS 공격을 진행할 수 있다. 이는 **응답을 확인하지 않는다는 UDP의 맹점을 활용한 방식인데 UDP 패킷을 기관총 처럼 난사해 서버를 다운 시키는 방법**이다. 이 경우 서버의 포트가 전부 차거나 리소스 과부하로 서버가 다운될 수 있다. 실제로 DNS를 이런 식으로 공격해 다운 시키는 경우가 종종 있었다.
-![[Pasted image 20231201223133.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/UDP%20%ED%86%BA%EC%95%84%EB%B3%B4%EA%B8%B0%20%28%2BTCP%EC%99%80%20%EC%B0%A8%EC%9D%B4%29%20/%20Pasted%20image%2020231201223133.png)
 ___
 ### UDP 브로드캐스트
 브로드캐스팅을 하기 위해선 UDP를 사용해야만 한다.  TCP로는 브로드 캐스팅을 할 수 없다. 추가적으로 복수 개의 대상에 동시에 전송하는 멀티 캐스트 역시 UDP로만 가능하다.
@@ -159,16 +159,16 @@ UDP는 사전 작업 없이 곧장 통신을 진행한다. 연결이 없기 때�
 ___
 ### UDP 소켓 통신 방식
 
-![[Pasted image 20231222181115.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/UDP%20%ED%86%BA%EC%95%84%EB%B3%B4%EA%B8%B0%20%28%2BTCP%EC%99%80%20%EC%B0%A8%EC%9D%B4%29%20/%20Pasted%20image%2020231222181115.png)
 
 UDP 소켓은 위의 이미지와 같은 순서로 동작한다. 상남자 방식이다. 악수하고 그런 과정 없다. 눈 마주치면 바로 통신 개시다. 당연히 신뢰성을 보장할 수 없다.
 ___
 ### UDP 세그먼트
 
-![[Pasted image 20231222173337.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/UDP%20%ED%86%BA%EC%95%84%EB%B3%B4%EA%B8%B0%20%28%2BTCP%EC%99%80%20%EC%B0%A8%EC%9D%B4%29%20/%20Pasted%20image%2020231222173337.png)
 세그먼트 역시 상남자다. 이런저런 요소가 덕지덕지 붙은 TCP와 비교가 안될정도로 가볍다. UDP는   TCP에 비해 단순하다 보니 필요 데이터가 적고 이것이 작은 세그먼트라는 결과를 만들었다. 
 
-![[Pasted image 20231222182937.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/UDP%20%ED%86%BA%EC%95%84%EB%B3%B4%EA%B8%B0%20%28%2BTCP%EC%99%80%20%EC%B0%A8%EC%9D%B4%29%20/%20Pasted%20image%2020231222182937.png)
 
 > [!info]
 > **발신 포트와 출발 포트만 알면 어디든 갈 수 있어..**

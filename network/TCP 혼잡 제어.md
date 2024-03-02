@@ -37,7 +37,7 @@ ___
 
 **AIMD와 달리 윈도우 사이즈가 1로 급감하는 방식이기 때문에 윈도우 사이즈가 적절 범위에서 유지되지 않고 급등,급감이 발생한다.**
 
-![[Pasted image 20231227184550.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/TCP%20%ED%98%BC%EC%9E%A1%20%EC%A0%9C%EC%96%B4%20/%20Pasted%20image%2020231227184550.png)
 
 ___
 ### 혼잡제어 정책들
@@ -46,7 +46,7 @@ ___
 
 **Tahoe는 기본적으로 처음에는 Slow Start 방식을 사용하다가 네트워크가 혼잡하다고 느껴졌을 때는 AIMD 방식으로 전환하는 방법을 사용**하는 정책이다. 윈도우 사이즈는 지수 단위로 증가하다 특정 기준 이후로는 선형적으로 증가한다. 아래는 Tahoe와 Reno를 적용했을 때 혼잡 윈도우 사이즈의 변화 그래프이다.
 
-![[Pasted image 20231227185850.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/TCP%20%ED%98%BC%EC%9E%A1%20%EC%A0%9C%EC%96%B4%20/%20Pasted%20image%2020231227185850.png)
 
 **Tahoe는 윈도우 사이즈가 Threshold 값에 다다들 때 까진 Slow Start 방식을 사용하다 이후엔 AIMD로 전환한다.** Threshold는 임계치를 의미하며 이보다 윈도우 사이즈가 커질 경우 안전한 전송을 보장하지 못하는 단계를 말한다.
 

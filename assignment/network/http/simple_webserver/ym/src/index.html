@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메인 페이지</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        header, footer { background-color: #f3f3f3; text-align: center; padding: 1em; }
+        section { margin: 2em; }
+        .container { max-width: 800px; margin: auto; }
+        img { max-width: 100%; height: auto; }
+        .button-group { text-align: center; margin-top: 2em; }
+        button { background-color: #4CAF50; color: white; padding: 10px 20px; margin: 0 10px; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>환영합니다!</h1>
+        <p>네트워크 html 서버 숙제</p>
+    </header>
+    <div class="container">
+        <!-- 생략된 섹션들 -->
+
+        <div class="button-group">
+            <button id="btn1">버튼 1</button>
+            <button id="btn2">버튼 2</button>
+            <button id="btn3">버튼 3</button>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2024 웹사이트. 모든 권리 보유.</p>
+    </footer>
+
+    <script>
+        document.getElementById('btn1').addEventListener('click', function() {
+            window.location.href = '/article1.html'; // 여기서 '/article1'은 예시 URL입니다. 실제 경로로 변경하세요.
+        });
+        document.getElementById('btn2').addEventListener('click', function() {
+            window.location.href = '/article2.html'; // 실제 경로로 변경하세요.
+        });
+        document.getElementById('btn3').addEventListener('click', function() {
+            window.location.href = '/article3.html'; // 실제 경로로 변경하세요.
+        });
+    </script>
+</body>
+</html>

@@ -9,6 +9,12 @@ const HTTP_RESPONSE_TEMPLATE = (status_code, content_type, content) => {
 const handleRequest = (request, response) => {
   const parsedUrl = url.parse(request.url);
 
+  // random timeout
+  const timeout = Math.floor(Math.random() * 1000);
+  setTimeout(() => {
+    console.log(`Request for ${parsedUrl.pathname} received`);
+  }, timeout);
+
   if (request.method === "GET") {
     let filePath = "./" + parsedUrl.pathname;
 

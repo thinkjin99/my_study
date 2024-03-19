@@ -14,13 +14,14 @@ def main():
 
         # 얘를 안쓰고 싶음...
         # 최대 100개의 스레드를 가진 ThreadPoolExecutor를 생성
-        start_time = time.time()  # 요청 시작 시간을 기록
-        # 100개의 요청을 병렬로 보내기 위해 executor.submit을 사용하여 getStatusCode 함수를 100번 호출합니다.
-        # 각 호출은 futures 리스트에 저장됩니다.
+        start_time = time.time()  # 요청 시작 시간 기록
+        
+        # executor.submit: 100개의 요청을 병렬로 보냄, getStatusCode 함수를 100번 호출
+        # futures 리스트에 저장
         futures = [executor.submit(getStatusCode, url) for _ in range(100)]
-        # futures 리스트에 저장된 모든 future 객체의 결과를 기다리며, 각각의 결과(여기서는 상태 코드)를 results 리스트에 저장합니다.
+        # futures 리스트에 저장된 모든 future 객체의 결과를 기다리고, 각각의 결과(Status code)를 results 리스트에 저장
         results = [future.result() for future in futures]
-        end_time = time.time()  .
+        end_time = time.time()  
 
     # 총 시간, 평균 요청 시간, 모든 요청의 상태 코드 출력
     print(f"100 requests completed in {end_time - start_time} seconds")

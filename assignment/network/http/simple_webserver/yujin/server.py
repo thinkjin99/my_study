@@ -18,7 +18,7 @@ async def work(reader, writer):
         # 요청된 파일 경로 설정
         filepath = f'{path}'  # 루트 폴더를 현재 디렉터리로 가정
         if path[0] == '/':
-            #Todo 상대경로를 못찾네..
+            # 얘가 상대경로를 못찾네..
             filepath = 'assignment/network/http/simple_webserver/yujin/index.html'
         
         # 파일 읽기

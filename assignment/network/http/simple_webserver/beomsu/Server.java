@@ -101,12 +101,6 @@ public class Server {
 			return generateResponse(fileContent, endpoint);
 		}
 
-		if (
-			endpoint.equals("/favicon.ico")
-		) {
-
-		}
-
 		throw new IllegalArgumentException("요청받은 리소스는 존재하지 않습니다.");
 	}
 

@@ -179,11 +179,11 @@ def sync_busy_wait():
 
 **select() 는 FD_SET(등록한 파일 디스크립터 집합) 바이트 배열의 특정 인덱스를 검사하는 방법으로 해당 파일의 상태를 파악**하는데, 이때 검사하는 index는 검사하고자 하는 파일의 fd값과 동일하다.
 
-![[Pasted image 20231121183520.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/IO%20Multiplexing%20/%20Pasted%20image%2020231121183520.png)
 
 fd값이 3인 소켓의 이벤트를 확인하고 싶은 경우 다음과 같이 동작한다. **select()는 계속해서 3까지의 모든 fd에 대한 이벤트를 조사하다 3에 이벤트가 발생할 경우 FD_SET의 해당 fd 인덱스의 값을 1로 활성화 한다.** 이는 타임아웃이 발생할 때까지 반복되는데 <b><u>관심있는 FD는 3번 하나인데 이를 위해 4개를 감시해야하니 무척 비효율적이다.</u></b> 이후 이벤트가 발생한 fd에서 데이터를 읽은 후 FD_SET을 다시 초기화 해준다.
 
-![[Pasted image 20231121183535.png]]
+![](https://my-study.s3.ap-northeast-2.amazonaws.com/IO%20Multiplexing%20/%20Pasted%20image%2020231121183535.png)
 
 따라서 select의 동작순서를 정리하면 다음과 같다.
 

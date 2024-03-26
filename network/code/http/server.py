@@ -2,6 +2,7 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 import pathlib
 import random
+import select
 import time
 
 
@@ -30,14 +31,19 @@ def get_html(path: str):
     return html
 
 
-def create_response(path: str):
+def create_response(method: str, path: str):
     first_line = """HTTP/1.1 200 OK\r\n"""
     try:
+        assert method == "GET", "Not Implemented method"
         html = get_html(path)
 
     except FileNotFoundError:
         first_line = """HTTP/1.1 404 Not Found\r\n"""
         html = get_html("404.html")
+
+    except AssertionError:
+        first_line = """HTTP/1.1 405 Method not Allowed\r\n"""
+        html = get_html("503.html")
 
     except Exception:
         first_line = """HTTP/1.1 500 Server Error\r\n"""
@@ -74,7 +80,7 @@ def server(client_sock: socket.socket):
 
         if start_line:
             method, path, version = start_line.split()
-            response_msg = create_response(path)
+            response_msg = create_response(method, path)
             time.sleep(random.randint(1, 3))
             client_sock.send(response_msg.encode("utf-8"))
 
@@ -97,6 +103,10 @@ def main():
                 f"Connected {client_sock.getsockname()} >> {client_sock.getpeername()}\n"
             )
             executor.submit(server, client_sock)
+
+
+
+
 
 
 if __name__ == "__main__":

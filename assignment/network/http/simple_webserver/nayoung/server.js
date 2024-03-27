@@ -16,7 +16,7 @@ const handleRequest = (request, response) => {
   }, timeout);
 
   if (request.method === "GET") {
-    let filePath = "./" + parsedUrl.pathname;
+    let filePath = "." + parsedUrl.pathname;
 
     // "/" 경로인 경우에는 index.html로 설정
     if (filePath === "./") {

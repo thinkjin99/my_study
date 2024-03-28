@@ -22,12 +22,13 @@ def send_recv(sock: socket.socket | None = None):
 
 
 if __name__ == "__main__":
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    REQCNT = 100
+    with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.connect(("127.0.0.1", 8080))
-        # futures = [executor.submit(send_recv) for _ in range(100)]  # no reuse
-        futures = [executor.submit(send_recv, sock) for _ in range(100)]  # yes reuse
+        futures = [executor.submit(send_recv) for _ in range(REQCNT)]  # no reuse
+        # futures = [executor.submit(send_recv, sock) for _ in range(100)]  # yes reuse
 
         total = 0
         start = time.time()
@@ -40,4 +41,4 @@ if __name__ == "__main__":
         sock.close()
 
     end = time.time()
-    print(f"Total:{end-start}, avg sec: {total / 100}")
+    print(f"Total:{end-start}, avg sec: {total / REQCNT}")

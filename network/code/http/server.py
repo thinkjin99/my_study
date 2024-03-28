@@ -1,5 +1,6 @@
 import socket
 from concurrent.futures import ThreadPoolExecutor
+import threading
 import pathlib
 import random
 import select
@@ -98,15 +99,12 @@ def main():
     with ThreadPoolExecutor(max_workers=16) as executor:
         executor.submit(log_worker)
         while True:
+            log_queue.put(f"Thread Count:{threading.active_count()}")
             client_sock, _ = sock.accept()
             log_queue.put(
                 f"Connected {client_sock.getsockname()} >> {client_sock.getpeername()}\n"
             )
             executor.submit(server, client_sock)
-
-
-
-
 
 
 if __name__ == "__main__":

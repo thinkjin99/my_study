@@ -99,7 +99,7 @@ def server(Connection: Connection):
         # 인위적으로 생성한 시간이 소요되는 프로세스
         while True:
             now = time.time()
-            print("Server waits...")
+            # print("Server waits...")
             if now - start >= hold_time:
                 break
             yield 0  # 0은 커넥션이 살아있음
@@ -154,7 +154,7 @@ def async_main():
     listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    listen_sock.bind(("127.0.0.1", 8080))
+    listen_sock.bind(("10.14.6.91", 8080))
     listen_sock.listen(100)
 
     kq = select.kqueue()
@@ -172,6 +172,7 @@ def async_main():
                 client_sock, _ = listen_sock.accept()
                 peer = client_sock.getpeername()
                 logging.info(f"Connection Socket: {peer[1]} is connected")
+                logging.info(f"Connection count: {len(connections.keys())}")
 
                 client_event = select.kevent(
                     client_sock.fileno(), select.KQ_FILTER_READ, select.KQ_EV_ADD

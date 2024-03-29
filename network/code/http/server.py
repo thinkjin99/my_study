@@ -93,7 +93,7 @@ def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    sock.bind(("127.0.0.1", 8080))
+    sock.bind(("10.14.5.88", 8080))
     sock.listen(100)
     print("Server is running...")
     with ThreadPoolExecutor(max_workers=16) as executor:

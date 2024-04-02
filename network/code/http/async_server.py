@@ -94,17 +94,17 @@ def server(Connection: Connection):
         response_msg = create_response(method, path)
 
         start = time.time()
-        hold_time = random.randint(1, 3)
+        hold_time = 3
 
         # 인위적으로 생성한 시간이 소요되는 프로세스
         while True:
             now = time.time()
-            print("Server waits...")
+            # print("Server waits...")
             if now - start >= hold_time:
                 break
             yield 0  # 0은 커넥션이 살아있음
 
-        client_sock.send(response_msg.encode("utf-8"))
+        client_sock.sendall(response_msg.encode("utf-8"))
 
     return 0
 
@@ -155,7 +155,7 @@ def async_main():
     listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     listen_sock.bind(("127.0.0.1", 8080))
-    listen_sock.listen(100)
+    listen_sock.listen(1000)
 
     kq = select.kqueue()
     server_event = select.kevent(
@@ -166,12 +166,14 @@ def async_main():
     connections: Dict[int, Connection] = {}  # 커넥션 풀
 
     while True:
-        events = kq.control(None, 100, 0.1)  # 최대 100개의 이벤트 등록
+        events = kq.control(None, 1000, 0.1)  # 최대 100개의 이벤트 등록
+
         for event in events:
             if listen_sock.fileno() == event.ident:
                 client_sock, _ = listen_sock.accept()
                 peer = client_sock.getpeername()
                 logging.info(f"Connection Socket: {peer[1]} is connected")
+                logging.info(f"Connection count: {len(connections.keys())}")
 
                 client_event = select.kevent(
                     client_sock.fileno(), select.KQ_FILTER_READ, select.KQ_EV_ADD

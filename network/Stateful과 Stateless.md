@@ -5,7 +5,11 @@
 * [코딩애플 뚱뚱한 URL](https://www.youtube.com/watch?v=pCOBmmJARPE)
 ____
 ### 개요
-
+* [[#Stateful]]
+* [[#Stateful의 함정]]
+* [[#Stateless]]
+* [[#HTTP는 상태가 없다]]
+* [[#웹 어플리케이션의 상태 관리]]
 ____
 ### Stateful
 
@@ -133,35 +137,4 @@ IP나 소켓을 활용해 식별하는 방법도 존재한다. 하지만 이 경
 	흥미로운 내용이지만 실제로 이걸 운영 레벨에서 사용하는 서비스사 존재한다. [코딩애플](https://www.youtube.com/watch?v=pCOBmmJARPE)
 	에서 소개한 내용을 확인하면 야후 파이낸스에서는 위 방법으로 유저의 환경설정 데이터를 저장한다. 실제 서비스를 확인해보자. [야후 파이낸스](https://finance.yahoo.com/chart/OXY?showOptin=1#eyJpbnRlcnZhbCI6MSwicGVyaW9kaWNpdHkiOjEsInRpbWVVbml0IjoibWludXRlIiwiY2FuZGxlV2lkdGgiOjcuMzg4NTM1MDMxODQ3MTM0LCJmbGlwcGVkIjpmYWxzZSwidm9sdW1lVW5kZXJsYXkiOnRydWUsImFkaiI6dHJ1ZSwiY3Jvc3NoYWlyIjp0cnVlLCJjaGFydFR5cGUiOiJsaW5lIiwiZXh0ZW5kZWQiOmZhbHNlLCJtYXJrZXRTZXNzaW9ucyI6e30sImFnZ3JlZ2F0aW9uVHlwZSI6Im9obGMiLCJjaGFydFNjYWxlIjoibGluZWFyIiwicGFuZWxzIjp7ImNoYXJ0Ijp7InBlcmNlbnQiOjEsImRpc3BsYXkiOiJPWFkiLCJjaGFydE5hbWUiOiJjaGFydCIsImluZGV4IjowLCJ5QXhpcyI6eyJuYW1lIjoiY2hhcnQiLCJwb3NpdGlvbiI6bnVsbH0sInlheGlzTEhTIjpbXSwieWF4aXNSSFMiOlsiY2hhcnQiLCLigIx2b2wgdW5kcuKAjCJdfX0sInNldFNwYW4iOm51bGwsImxpbmVXaWR0aCI6Miwic3RyaXBlZEJhY2tncm91bmQiOnRydWUsImV2ZW50cyI6dHJ1ZSwiY29sb3IiOiIjMDA4MWYyIiwic3RyaXBlZEJhY2tncm91ZCI6dHJ1ZSwicmFuZ2UiOm51bGwsImV2ZW50TWFwIjp7ImNvcnBvcmF0ZSI6eyJkaXZzIjp0cnVlLCJzcGxpdHMiOnRydWV9LCJzaWdEZXYiOnt9fSwic3ltYm9scyI6W3sic3ltYm9sIjoiT1hZIiwic3ltYm9sT2JqZWN0Ijp7InN5bWJvbCI6Ik9YWSIsInF1b3RlVHlwZSI6IkVRVUlUWSIsImV4Y2hhbmdlVGltZVpvbmUiOiJBbWVyaWNhL05ld19Zb3JrIn0sInBlcmlvZGljaXR5IjoxLCJpbnRlcnZhbCI6MSwidGltZVVuaXQiOiJtaW51dGUiLCJzZXRTcGFuIjpudWxsfV0sImN1c3RvbVJhbmdlIjpudWxsLCJzdHVkaWVzIjp7IuKAjHZvbCB1bmRy4oCMIjp7InR5cGUiOiJ2b2wgdW5kciIsImlucHV0cyI6eyJpZCI6IuKAjHZvbCB1bmRy4oCMIiwiZGlzcGxheSI6IuKAjHZvbCB1bmRy4oCMIn0sIm91dHB1dHMiOnsiVXAgVm9sdW1lIjoiIzAwYjA2MSIsIkRvd24gVm9sdW1lIjoiI2ZmMzMzYSJ9LCJwYW5lbCI6ImNoYXJ0IiwicGFyYW1ldGVycyI6eyJ3aWR0aEZhY3RvciI6MC40NSwiY2hhcnROYW1lIjoiY2hhcnQiLCJwYW5lbE5hbWUiOiJjaGFydCJ9fSwi4oCMbWHigIwgKDUwLEMsbWEsMCkiOnsidHlwZSI6Im1hIiwiaW5wdXRzIjp7IlBlcmlvZCI6NTAsIkZpZWxkIjoiQ2xvc2UiLCJUeXBlIjoic2ltcGxlIiwiT2Zmc2V0IjowLCJpZCI6IuKAjG1h4oCMICg1MCxDLG1hLDApIiwiZGlzcGxheSI6IuKAjG1h4oCMICg1MCxDLG1hLDApIn0sIm91dHB1dHMiOnsiTUEiOiIjYWQ2ZWZmIn0sInBhbmVsIjoiY2hhcnQiLCJwYXJhbWV0ZXJzIjp7ImNoYXJ0TmFtZSI6ImNoYXJ0IiwicGFuZWxOYW1lIjoiY2hhcnQifX0sIuKAjG1h4oCMICgyMCxDLG1hLDApIjp7InR5cGUiOiJtYSIsImlucHV0cyI6eyJQZXJpb2QiOiIyMCIsIkZpZWxkIjoiQ2xvc2UiLCJUeXBlIjoic2ltcGxlIiwiT2Zmc2V0IjowLCJpZCI6IuKAjG1h4oCMICgyMCxDLG1hLDApIiwiZGlzcGxheSI6IuKAjG1h4oCMICgyMCxDLG1hLDApIn0sIm91dHB1dHMiOnsiTUEiOiIjZmY0YWFkIn0sInBhbmVsIjoiY2hhcnQiLCJwYXJhbWV0ZXJzIjp7ImNoYXJ0TmFtZSI6ImNoYXJ0IiwicGFuZWxOYW1lIjoiY2hhcnQifX19fQ--)
 	**공개해도 되는 데이터, DB에 저장할 필요가 없는 데이터, 공유가 쉬워야하는 데이터의 경우** 이런 방법이 장점을 가질 수 있다.
-
 ___
-### 쿠키와 세션
-
-쿠키는 사용자를 식별하고 정보를 유지하는 방식 중에서 현재까지 가장 널리 사용 되는 방식이다.
-
-쿠키란?
-쿠키 써먹기
-쿠키의 장단
-
-세션이란?
-세션 써먹기
-세션의 장단
-
-쿠키 VS 세션
-___
-### 왜 이렇게 쿠키를 허가 해달라고 할까?
-쿠키 허용시 무슨 일이 발생할까?
-쿠키의 악용성
-___
-### 어떻게 상태 관리를 해야 안전?
-
-쿠키로 상태 관리를 하면 안전할까?
-프론트엔드 단에서의 상태 관리
-___
-### JWT
-
-jwt는 무엇?
-jwt는 왜 필요?
-jwt의 장단
-jwt를 적절히 관리하는 법 (벡엔드, 프론트엔드)
-

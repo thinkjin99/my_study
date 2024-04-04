@@ -8,7 +8,7 @@ PoolManager는 다음과 같은 주석을 갖고 있다.
 해석하면 풀 매니저를 통해 여러 종류의 HTTP 리퀘스트를 처리할 수 있고 이들을 투명하게 관리할 수 있다는 의미이다. 
 
 <b><u>풀 매니저 클래스는 HTTP 연결에 대한 커넥션 풀을 자체적으로 처리함으로써 개발자가 리퀘스트의 송신 아래에 존재하는 요소에 대해선 신경쓰지 않게 만들어 준다.</u></b>
-따라서 개발자는 커넥션 풀을 활용해 리퀘스트를 송신할 수는 있지만, 실질적인 TCP 커넥션이 어떻게 생성되는지는 파악할 방법이 없다. 내부를 파악하려면 [[HTTPConnection]] 을 참고하자.
+따라서 개발자는 커넥션 풀을 활용해 리퀘스트를 송신할 수는 있지만, 실질적인 TCP 커넥션이 어떻게 생성되는지는 파악할 방법이 없다. 내부를 파악하려면 [[HTTPConnection 부터 send까지]] 을 참고하자.
 
 풀 매니저의 초기화 코드는 아래와 같다.
 
@@ -57,7 +57,7 @@ ____
 ### PoolManager.urlopen()
 
 이제 다시 풀 매니저 객체의 urlopen을 살펴보자. 문서를 살펴보면 [`urllib3.HTTPConnectionPool.urlopen()`](https://urllib3.readthedocs.io/en/stable/reference/urllib3.connectionpool.html#urllib3.HTTPConnectionPool.urlopen "urllib3.HTTPConnectionPool.urlopen")와 동일한 메서드라는 설명이 적혀있다. 또한 코드 내부를 살펴보면 실제로 `HTTPConnectionPool` 객체를 통해 `urlopen을` 전부 처리하는 모습을 확인할 수 있다.
-따라서 urlopen의 실질적인 정의를 확인하기 위해선 [[HTTPConnection#HTTPConnectionPool|HTTPConnectionPool]] 객체를 우선적으로 살펴봐야 한다.
+따라서 urlopen의 실질적인 정의를 확인하기 위해선 [[HTTPConnection 부터 send까지#HTTPConnectionPool|HTTPConnectionPool]] 객체를 우선적으로 살펴봐야 한다.
 
 ```python
 	conn = self.connection_from_host(u.host, port=u.port, scheme=u.scheme)

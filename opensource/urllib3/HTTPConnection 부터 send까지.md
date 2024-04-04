@@ -317,4 +317,140 @@ def send(self, data):
 ```
 
 `send`는 커넥션 객체에 소켓이 존재하지 않을 경우 연결된 소켓을 `connect`를 통해 생성한다. 이후 생성된 소켓을 사용해 실제 메세지를 전송한다. 
+___
+### Connect
 
+실질적인 커넥션은 `connect` 함수에서 진행된다. `connect` 함수 자체는 파이썬 내장 패키지인 `http.client`의 `HTTPConnection` 내부에도 존재하지만, 실제 `send` 함수에서 호출하는 함수는 `urllib`의 `HTTPConnection`에서 오버라이딩한 함수이다. 아래는 함수의 구조이다.
+
+```python
+  def  connect(self) -> None:
+	self.sock = self._new_conn()
+	if self._tunnel_host:
+		# If we're tunneling it means we're connected to our proxy.
+		self._has_connected_to_proxy = True
+
+		# TODO: Fix tunnel so it doesn't depend on self.sock state.
+		self._tunnel()  # type: ignore[attr-defined]
+
+	# If there's a proxy to be connected to we are fully connected.
+	# This is set twice (once above and here) due to forwarding proxies
+	# not using tunnelling.
+	self._has_connected_to_proxy = bool(self.proxy)
+
+	if self._has_connected_to_proxy:
+		self.proxy_is_verified = False
+
+```
+
+함수 구조를 살펴보면 실질적인 커넥션은 `_new_conn`에서 처리한다. 아래서 코드를 살펴보자.
+```python
+def _new_conn(self) -> socket.socket:
+        """Establish a socket connection and set nodelay settings on it.
+
+        :return: New socket connection.
+        """
+        try:
+            sock = connection.create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+        except socket.gaierror as e:
+            raise NameResolutionError(self.host, self, e) from e
+        except SocketTimeout as e:
+            raise ConnectTimeoutError(
+                self,
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
+            ) from e
+```
+
+코드를 살펴보면 실질적인 연결 처리는 또다시 `create_connection`이라는 곳에서 처리한다는 것을 확인할 수 있다. 해당 함수는 `util/conneciton.py`에 존재한다.
+
+``` python
+
+def create_connection(
+    address: tuple[str, int],
+    timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
+    source_address: tuple[str, int] | None = None,
+    socket_options: _TYPE_SOCKET_OPTIONS | None = None,
+) -> socket.socket:
+    """Connect to *address* and return the socket object.
+
+    Convenience function.  Connect to *address* (a 2-tuple ``(host,
+    port)``) and return the socket object.  Passing the optional
+    *timeout* parameter will set the timeout on the socket instance
+    before attempting to connect.  If no *timeout* is supplied, the
+    global default timeout setting returned by :func:`socket.getdefaulttimeout`
+    is used.  If *source_address* is set it must be a tuple of (host, port)
+    for the socket to bind as a source address before making the connection.
+    An host of '' or port 0 tells the OS to use the default.
+    """
+
+    host, port = address
+    if host.startswith("["):
+        host = host.strip("[]")
+    err = None
+
+    # Using the value from allowed_gai_family() in the context of getaddrinfo lets
+    # us select whether to work with IPv4 DNS records, IPv6 records, or both.
+    # The original create_connection function always returns all records.
+    family = allowed_gai_family()
+
+    try:
+        host.encode("idna") #idna는 아스키가 아닌 도메인을 아스키 형태로 변경하는 인코딩이다.
+    except UnicodeError:
+        raise LocationParseError(f"'{host}', label empty or too long") from None
+
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        sock = None
+        try:
+            sock = socket.socket(af, socktype, proto)
+
+            # If provided, set socket level options before connecting.
+            _set_socket_options(sock, socket_options)
+
+            if timeout is not _DEFAULT_TIMEOUT:
+                sock.settimeout(timeout)
+            if source_address:
+                sock.bind(source_address)
+            sock.connect(sa)
+            # Break explicitly a reference cycle
+            err = None
+            return sock
+
+        except OSError as _:
+            err = _
+            if sock is not None:
+                sock.close()
+
+    if err is not None:
+        try:
+            raise err
+        finally:
+            # Break explicitly a reference cycle
+            err = None
+    else:
+        raise OSError("getaddrinfo returns an empty list")
+
+```
+#### *익셉션 순환 참조 문제*
+**흥미로운 점은 에러 핸들링 부분인데 언더바를 활용해 에러 객체를 저장하고 핸들링 하는 모습을 확인해볼 수 있다.** 이는 예외 객체에서 발생하는 순환 참조 오류를 해결하기 위함인대, 예외 객체는 traceback을 포함하기 위해 스택 영역의 변수들을 참조하고 있다. 따라서 다음과 같은 코드가 있다고 가정하면
+
+```python
+try:
+	#do something
+except Exception as e:
+	raise e
+```
+
+**스택 영역에 예외 객체 e가 생기고 예외 객체 e는 스택 영역에 생성된 변수 e를 참조하는 순환 참조 문제가 발생한다.** 해결하는 방법은 간단한데 예외를 발생시키고 참조를 제거해주면 된다. [참고](https://github.com/python/cpython/issues/81001)
+```python
+try:
+	#do something
+except Exception as e:
+	raise e
+finally:
+	 e = None
+```

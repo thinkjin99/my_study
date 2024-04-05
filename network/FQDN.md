@@ -1,4 +1,8 @@
-
+### 출처
+* [FQDN이란](https://superuser.com/questions/1467958/why-does-putting-a-dot-after-the-url-remove-login-information)
+* [검색 도메인이란?](https://superuser.com/questions/184361/what-is-the-search-domains-field-for-in-the-tcp-ip-dns-settings-control-panel)
+* [호스트 VS 도메인](https://superuser.com/questions/59093/difference-between-host-name-and-domain-name)
+___
 #### FQDN이란
  `www.example.com.`이러한 도메인 Fully Qqualified Domain Name이라고 하는데 직역 하자면 완벽한 도메인이다. 우리가 흔히 인터넷을 사용할때 브라우저에 입력하는 url과 흡사하다. FQDN은 다음과 같이 구성된다.
 

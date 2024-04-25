@@ -15,7 +15,7 @@ ___
 ___
 ### Chunking이란?
 
-![https://www.google.com/url?sa=i&url=https%3A%2F%2Fm.hankookilbo.com%2FNews%2FRead%2FA2021052005090002214%3FrPrev%3DA2021061611440002137&psig=AOvVaw2SE-aKTzSdTvkngdBHukag&ust=1712590831782000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCIDrgJi4sIUDFQAAAAAdAAAAABAE|400](https://my-study.s3.ap-northeast-2.amazonaws.com/HTTP%20Chunk%20VS%20Content-Length%20/%20Pasted%20image%2020240408004058.png)
+![](https://newsimg.hankookilbo.com/cms/articlerelease/2021/05/20/9ddb25a9-a67f-4be2-aa31-36247b2961d8.jpg)
 
 Chunking은 **HTTP에서 [[데이터 단위#스트림과 버퍼|스트리밍]]을 구현하기 위해 활용하는 기능으로 HTTP의 바디 데이터를 작은 조각으로 쪼개 연속으로 전송하는 기법을 말한다.** 청킹은 **전송하는 메시지의 크기를 정확히 파악하지 못하는 경우 주로 활용되며 `Content-Length` 헤더가 명시돼지 않았을 경우 자동으로 실행된다.**
 

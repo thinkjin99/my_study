@@ -7,7 +7,6 @@
 * 메시지를 어떻게 전송하는가?
 * 메시지를 어떻게 수신하는가?
 * 연결을 어떻게 종료하는가?
-
 ___
 ### 연결을 어떻게 생성하는가?
 
@@ -202,7 +201,7 @@ ____
 요청 메시지의 파싱은 아래 부분의 `put_request` 에서 진행된다.
 ```python
 if headers is None:
-            headers = {}
+        headers = {}
         header_keys = frozenset(to_str(k.lower()) for k in headers)
         skip_accept_encoding = "accept-encoding" in header_keys
         skip_host = "host" in header_keys
@@ -371,3 +370,211 @@ def body_to_chunks(
         chunks = chunk_readable()
         content_length = None
 ```
+
+___
+### 답답해서 내가 뛴다 청킹 고쳐보기
+
+청킹 로직을 보며 느낀 가장 큰 문제점은 코드가 예상한대로 동작하지 않는다는 것이였다. 위의 청킹 로직을 보면 c**hunked 파라미터의 값이 false로 설정돼도 Contents-Length 헤더가 명시 돼있지 않으면 자동적으로 청킹을 진행하는 방식으로 동작**한다.
+
+이는 모호한 동작이므로 chunked 파라미터의 값이 false로 설정돼 있을 경우 자동적으로 전송 하려는 데이터의 크기를 측정한 후 Contents-Length를 활용해 통신하는 방식으로 코드를 수정했다. 아래는 수정된 코드이다.
+
+```python
+def request(  # type: ignore[override]
+        self,
+        method: str,
+        url: str,
+        body: _TYPE_BODY | None = None,
+        headers: typing.Mapping[str, str] | None = None,
+        *,
+        chunked: bool = False,
+        preload_content: bool = True,
+        decode_content: bool = True,
+        enforce_content_length: bool = True,
+    ) -> None:
+        # Update the inner socket's timeout value to send the request.
+        # This only triggers if the connection is re-used.
+        if self.sock is not None:
+            self.sock.settimeout(self.timeout)
+
+        # Store these values to be fed into the HTTPResponse
+        # object later. TODO: Remove this in favor of a real
+        # HTTP lifecycle mechanism.
+
+        # We have to store these before we call .request()
+        # because sometimes we can still salvage a response
+        # off the wire even if we aren't able to completely
+        # send the request body.
+        self._response_options = _ResponseOptions(
+            request_method=method,
+            request_url=url,
+            preload_content=preload_content,
+            decode_content=decode_content,
+            enforce_content_length=enforce_content_length,
+        )
+
+        if headers is None:
+            headers = {}
+        header_keys = frozenset(to_str(k.lower()) for k in headers)
+        skip_accept_encoding = "accept-encoding" in header_keys
+        skip_host = "host" in header_keys
+        self.putrequest(
+            method, url, skip_accept_encoding=skip_accept_encoding, skip_host=skip_host
+        )
+        # The body is sent by content-length header when chunked is False or
+        # transfer-encoding header doesn't exist.
+        # The sending header is only affected by chunked parameter or header
+        # type of body doesn't affect to header.
+
+        if "content-length" in header_keys:
+            chunked = False
+
+        elif "transfer-encoding" in header_keys:
+            chunked = True
+
+        chunks_and_cl = None
+        content_length = None
+
+        # Transform the body into an iterable of sendall()-able chunks
+
+        # If No body, we need to make a recommendation on 'Content-Length'
+        # based on whether that request method is expected to have
+        # a body or not.
+
+        if body is None:
+            if method.upper() not in _METHODS_NOT_EXPECTING_BODY:
+                content_length = 0
+
+        elif chunked:
+            chunks_and_cl = body_to_chunks(body, self.blocksize)  # use chunking
+
+        else:
+            chunks_and_cl = body_to_bytes(body, self.blocksize)
+            content_length = chunks_and_cl.content_length
+
+        # Now that framing headers are out of the way we send all the other headers.
+        if "user-agent" not in header_keys:
+            self.putheader("User-Agent", _get_default_user_agent())
+
+        # Detect whether a framing mechanism is already in use. If so we respect that value.
+        if chunked and "transfer-encoding" not in header_keys:
+            self.putheader("Transfer-Encoding", "chunked")
+
+        elif content_length is not None:
+            self.putheader("Content-Length", str(content_length))
+
+        for header, value in headers.items():
+            self.putheader(header, value)
+
+        self.endheaders()
+
+        if chunks_and_cl:
+            chunks = chunks_and_cl.chunks
+
+            # If we're given a body we start sending that in chunks.
+            for chunk in chunks:
+                # Sending empty chunks isn't allowed for TE: chunked
+                # as it indicates the end of the body.
+                if not chunk:
+                    continue
+                if isinstance(chunk, str):
+                    chunk = chunk.encode("utf-8")
+                if chunked:
+                    self.send(b"%x\r\n%b\r\n" % (len(chunk), chunk))
+                else:
+                    self.send(chunk)
+
+        # Regardless of whether we have a body or not, if we're in
+        # chunked mode we want to send an explicit empty chunk.
+        if chunked:
+            self.send(b"0\r\n\r\n")
+
+```
+
+수정을 통해 개선하고 싶었던 점은 추측을 통해 청킹을 진행하는 현상 제거하고 유저가 명시한 경우에만 진행하는 것이다. **즉, chunked라고 명확히 주어진 매개변수 값을 활용해서만 청킹의 진행 여부를 판단하게 하는 것이 이번 수정의 가장 큰 목표**였다.
+
+이러한 수정을 진행하게 된 계기는 명확 했는데, 컨텐츠 길이를 파악할 수 있다면, 청킹보다 데이터를 덩어리로 한번에 던지는 것이 대부분 더욱 효율적이기 때문이다. ([[HTTP Chunk VS Content-Length]])
+
+이를 구현하기 위해 수정한 부분은 단순했다. 우선 청킹을 추측하는 로직을 제거했다.
+```python
+if body is None:
+	if method.upper() not in _METHODS_NOT_EXPECTING_BODY:
+			content_length = 0
+
+	elif chunked:
+		chunks_and_cl = body_to_chunks(body, self.blocksize)  # use chunking
+
+	else:
+		chunks_and_cl = body_to_bytes(body, self.blocksize)
+		content_length = chunks_and_cl.content_length
+
+```
+
+이전의 코드와 달리 청킹 값이 참으로 설정돼 있는 경우에만 청킹을 진행하고 아닐 경우 전송 하려는 파일의 크기를 측정하는 코드를 작성했다. 이제 chunked 변수의 값이 실제 청킹 여부를 결정한다.
+
+이외에는 파일의 크기를 측정하는 부분을 구현할 필요가 있다.
+```python
+def chunk_readable(body: typing.Any, blocksize: int) ->typing.Iterable[bytes]:
+    #Get file content length
+    encode = isinstance(body, io.TextIOBase)
+    while True:
+        datablock = body.read(blocksize)
+        if not datablock:
+            break
+        if encode:
+            datablock = datablock.encode("iso-8859-1")
+        yield datablock
+
+def body_to_bytes(body: typing.Any, blocksize: int) -> ChunksAndContentLength:
+    """Convert body data to sendable bytes and measures the length of it.
+    If body is iterable data then iter whole data and buffer it.
+    """
+
+    if isinstance(body, (str, bytes)):
+        chunks = (to_bytes(body),)
+        content_length = len(chunks[0])
+
+    elif hasattr(body, "read"):
+        chunks = bytearray()
+        for chunk in chunk_readable(body, blocksize):
+            chunks += chunk
+
+        chunks = (chunks,)
+        content_length = len(chunks[0])
+
+    elif hasattr(body, "__next__"):  # check iterator type
+        chunks = bytearray()
+        for chunk in body:
+            try:
+                chunks += chunk
+            except TypeError:
+                # if chunk is not byte
+                raise TypeError(
+                    f"'body' must be a bytes-like object, file-like "
+                    f"object, or iterable. Instead was {body!r}"
+                ) from None
+
+        chunks = (chunks,)
+        content_length = len(chunks[0])
+
+    else:
+        # Otherwise we need to start checking via duck-typing.
+        try:
+            mv = memoryview(body)
+            chunks = (body,)
+            content_length = mv.nbytes
+        except TypeError:
+            raise TypeError(
+                f"'body' must be a bytes-like object, file-like "
+                f"object, or iterable. Instead was {body!r}"
+            ) from None
+
+    return ChunksAndContentLength(chunks=chunks, content_length=content_length)
+
+```
+제네레이터를 활용해 바이트를 청크 단위로 잘라가며 파일을 읽고 이후 전체 길이를 측정해 반환하는 함수이다. 이후 해당 길이를 활용해 파일을 길이만큼 읽고 전송을 하는 방식으로 처리한다.
+
+### 결과
+
+코드 자체는 큰 문제가 없다. 테스트도 잘 통과하고 큰 이슈도 존재하지 않는다. **문제는 이를 반영할 경우 다른 라이브러리나 시스템에 혼란을 줄 수 있다는 것이다. 기존의 청킹을 기본적으로 실행하던 방식에서 이러한 방식으로 변경할 경우 큰 크기의 파일을 전송하는 서버의 경우 메모리에서 이슈가 발생할 수도 있다.**
+
+실제로 이슈를 리젝먹은 이유를 살펴보면 이와 같은 내용들이 내포 돼 있다. [이슈](https://github.com/urllib3/urllib3/issues/3379)

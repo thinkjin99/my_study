@@ -1,5 +1,6 @@
 from http.client import HTTPConnection
 import time
+import urllib3
 
 
 def do_content_length(conn, body):
@@ -35,17 +36,21 @@ def do_chunk(conn, body):
     conn.send(body)
 
 
-conn = HTTPConnection(host="127.0.0.1", port=80)
-conn.connect()
-conn.putrequest(method="POST", url="/files")
+# conn = HTTPConnection(host="127.0.0.1", port=80)
+# conn.connect()
+# conn.putrequest(method="POST", url="/files")
 
 
 body = open(
-    "/Users/jin/Library/Mobile Documents/iCloud~md~obsidian/Documents/my_study/network/code/http/chunk_test/test.gif",
+    "./test.gif",
     "rb",
 )
 
+pool = urllib3.PoolManager()
+res = pool.request("POST", url="http://127.0.0.1:80/files", body=body, chunked=False)
+print(res.data)
 # do_chunk(conn, body)
-do_content_length(conn, body)
-print(conn.getresponse().read())
+# do_content_length(conn, body)
+# conn.putrequest("GET", url="/")
+# print(conn.getresponse().read())
 # conn.send(chunk)  # 왜 1바이트 씩 계속 보내는 걸로 구성했지? 청킹 안하면

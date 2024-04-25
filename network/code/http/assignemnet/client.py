@@ -3,7 +3,8 @@ import concurrent.futures
 import urllib3
 
 
-ENDPOINT = "http://10.14.5.88:8080"
+# ENDPOINT = "http://10.14.5.88:8080"
+ENDPOINT = "http://10.21.22.26:8080/"
 
 
 def send_recv(pool: urllib3.HTTPConnectionPool | None = None):
@@ -21,7 +22,7 @@ def send_recv(pool: urllib3.HTTPConnectionPool | None = None):
 
 
 if __name__ == "__main__":
-    REQCNT = 200
+    REQCNT = 10
     with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
 
         pool = urllib3.connection_from_url(ENDPOINT)

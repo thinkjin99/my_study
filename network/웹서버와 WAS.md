@@ -20,7 +20,7 @@ ___
 
 웹서버는 실제 웹 서비스를 동작하는 하드웨어 서비스를 의미하기도 하고 HTTP 요청을 처리하는 소프트웨어를 칭하기도 한다. 현재 소프트웨어 웹서버는 다양하게 존재하며 현재 `nginx`와 `Apache`가 양분하고 있다.
 
-![[스크린샷 2024-01-14 오후 5.42.09.png]]
+![](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202024-01-14%20%EC%98%A4%ED%9B%84%205.42.09.png)
 
 소프트웨어 웹서버는 주로 파일 제공 등의 정적인 요청을 처리하는 서버를 의미하며 동적인 처리가 필요한 경우 별도의 WAS 서버를 활용한다. 
 
@@ -37,7 +37,7 @@ ___
 
 웹서버가 기본적으로 수행해야할 작업들은 위의 7가지이다. 이 정도만 돼도 웹서버라고 칭할 수 있다.
 
-![[Pasted image 20240114175705.png|500]]
+![500](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20Pasted%20image%2020240114175705.png)
 
 >[!info]
 >**TCP 커넥션을 맺고 HTTP 요청의 처리 및 적절한 전송이 가능하면 웹 서버라고 할 수 있다.**
@@ -58,7 +58,7 @@ ___
 ___
 #### 웹서버 아키텍쳐
 
-![[Pasted image 20240114181540.png|500]]
+![500](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20Pasted%20image%2020240114181540.png)
 
 
 * **단일 스레드 IO 서버**
@@ -98,24 +98,24 @@ ___
 
 **nginx는 한 개 또는 고정된 수의 프로세스만 생성하여 사용하고 Event-Driven 구조를 활용해 한 개의 프로세스에서 많은 IO를 처리하는 형태로 구현돼 있다.** 이에 따라 개별 요청을 처리하는데 적은 양의 리소스로 감당이 가능한 경량 웹서버이다. 
 
-![[Pasted image 20240429113303.png|https://velog.io/@wijihoon123/Nginx%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%B8%EA%B0%80]]
+![https://velog.io/@wijihoon123/Nginx%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%B8%EA%B0%80](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20Pasted%20image%2020240429113303.png)
 
 <u><b>nginx는 pre-fork 방식으로 동작하는 아파치 웹서버와는 대조되는 방식으로 가벼움을 토대로 C10K 문제를 해결했다.</b></u> 아파치 웹서버는 연결을 처리하는 프로세스를 미리 fork 시켜놓고 연결이 들어오면 곧장 미리 만들어뒀던 프로세스를 연결해주는 방식으로 동작했는데, 이는 연결 수가 많아지면 리소스 감당이 불가한 방식이었다.
 
 반면 nginx는 이벤트 루프를 차용한 구조를 활용하면서 리소스 재앙에서 벗어나 가볍게 요청을 처리하는 것이 가능해졌다.
 
-![[Pasted image 20240429114001.png]]
+![](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20Pasted%20image%2020240429114001.png)
 
 실제 nginx는 마스터 프로세스와 워커 프로세스로 구분돼 동작하는데 마스터 프로세스는 설정 파일을 읽고 워커 프로세스를 생성하는 총 책임자와 같은 프로세스이고 워커 프로세스가 실질적인 커넥션 관리를 진행하는 프로젝트가 된다.
 
 워커 프로세스는 생성시 소켓을 할당 받고 해당 소켓으로 들어오는 커넥션을 처리한다. **하나의 워커 프로세스는 여러 개의 커넥션을 처리하는데 이때 멀티 IO 처리를 위해 이벤트 루프를 활용해 처리한다.** (아마 epoll 등을 적극 활용하지 않을까 싶다...)
 
 워커 프로세스는 비동기로 동작하며 각 커넥션에서 발생한 요청, 신규 연결 요청, 종료 요청 등을 큐에서 하나씩 추출해 처리한다. 
-![[Pasted image 20240429114758.png|https://haon.blog/infra/nginx/core-concept/]]
+![https://haon.blog/infra/nginx/core-concept/](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20Pasted%20image%2020240429114758.png)
 
 이러한 방식은 문제가 존재하는데 **시간이 오래 소요되는 이벤트가 큐에 존재할 경우 다른 이벤트들이 받을 리소스를 빼앗아 전체적인 이벤트 처리 속도가 저하될 수 있다.** 이에 따라 작업이 오래 소요되는 이벤트의 경우 별도의 스레드 풀로 연결해 작업을 처리해 준다.
 
-![[Pasted image 20240429115123.png|https://haon.blog/infra/nginx/core-concept/]]
+![https://haon.blog/infra/nginx/core-concept/](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20Pasted%20image%2020240429115123.png)
 ___
 ### nginx의 장,단점
 

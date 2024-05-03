@@ -23,7 +23,6 @@ ___
 ![](https://obs3dian.s3.ap-northeast-2.amazonaws.com/%EC%9B%B9%EC%84%9C%EB%B2%84%EC%99%80%20WAS%20/%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202024-01-14%20%EC%98%A4%ED%9B%84%205.42.09.png)
 
 소프트웨어 웹서버는 주로 파일 제공 등의 정적인 요청을 처리하는 서버를 의미하며 동적인 처리가 필요한 경우 별도의 WAS 서버를 활용한다. 
-
 ___
 ### 웹 서버가 수행해야하는 일
 
@@ -82,7 +81,7 @@ nginx는 웹서버의 일종으로 아파치 웹서버와 더불어 가장 자�
 * **리버스 프록시란?**
 	**서버 네트워크의 앞단에 위치한 서버로 로드밸런싱, 포트 리워딩, SSL 지원, HTTP 설정 등의 작업을 수행한다. 실제 서버로 요청이 전달되기 이전에 거치는 서버**라고 이해하면 쉽다.
 
-![[Pasted image 20240429112503.png|https://cf-assets.www.cloudflare.com/slt3lc6tev37/3msJRtqxDysQslvrKvEf8x/f7f54c9a2cad3e4586f58e8e0e305389/reverse_proxy_flow.png|600]]
+![](https://cf-assets.www.cloudflare.com/slt3lc6tev37/3msJRtqxDysQslvrKvEf8x/f7f54c9a2cad3e4586f58e8e0e305389/reverse_proxy_flow.png)
 
 **nginx를 통해 수행할 수 있는 작업들은 다음과 같다.**
 * HTTP 커넥션 유지 시간 설정
@@ -145,14 +144,14 @@ cd /opt/homebrew/etc/nginx
 
 conf 파일에는 nginx의 모든 설정이 저장되며 우리는 여기서 정적 웹서버를 구축할 것이다. 이를 위해선 아래와 같이 작성하면 된다. nginx는 server를 정의한 만큼 설정에 따라 해당 포트를 리슨하는 서버를 생성 해준다.
 ```bash
- 41   server {
- 42     listen 8080;
- 43     root YOUR FILE PATH; #내 정적파일이 위치한 경로
- 44     location / {
- 45       autoindex off;
- 46     }
- 47   }
- 48
+    server {
+      listen 8080;
+      root YOUR FILE PATH; #내 정적파일이 위치한 경로
+      location / {
+        autoindex off;
+      }
+    }
+ 
 ```
 
 위와 같이 작성하면 8080 포트로 들어오는 요청의 경우 루트 경로가 내 html 파일 폴더의 경로로 설정 돼 이에 따라 적절한 파일을 응답 해준다. `autoindex` 옵션을 on으로 설정하면 `/`로 접속하면 목록 페이지를 전시한다. off면 index.html을 탐색한다.

@@ -1,17 +1,13 @@
 ### 출처
 * [CGi,.WSGI, ASGI](https://kangbk0120.github.io/articles/2022-02/cgi-wcgi-asgi)
 * [WAS, CGI, WSGI](https://brownbears.tistory.com/350)
+* [CGI 코드 분석](https://devocean.sk.com/search/techBoardDetail.do?ID=165508&boardType=&query=wsgi&searchData=&page=&subIndex=&idList=)
+___
 ### 개요
-* CGI란?
-* CGI의 동작방식
-* 파이썬의 CGI
-* CGI의 단점
-* FastCGI란
-* Nginx에 FastCGI 적용하기
-* FastCGI와 WSGI
-* WSGI의 동작방식
-* WAS란?
-* 장고는 어떻게 동작하나요?
+* [[#CGI란?]]
+* [[#파이썬의 웹서버와 핸들러]]
+* [[#CGI의 동작 방식]]
+* [[#정리]]
 ___
 ### CGI란?
 

@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 import cgi
-import os
+import time
 
 print("Content-type: text/html")
 print()
 
 form = cgi.FieldStorage()
-
+time.sleep(30)
 a = form.getvalue("a")
 b = form.getvalue("b")
 

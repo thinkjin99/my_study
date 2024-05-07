@@ -2,12 +2,15 @@
 * [CGi,.WSGI, ASGI](https://kangbk0120.github.io/articles/2022-02/cgi-wcgi-asgi)
 * [WAS, CGI, WSGI](https://brownbears.tistory.com/350)
 * [CGI 코드 분석](https://devocean.sk.com/search/techBoardDetail.do?ID=165508&boardType=&query=wsgi&searchData=&page=&subIndex=&idList=)
+* [FCGI 참고](https://sirzzang.github.io/dev/Dev-fcgiwrap-python/)
+* [FCGI란](https://www.joinc.co.kr/w/man/12/fastcgi)
 ___
 ### 개요
 * [[#CGI란?]]
 * [[#파이썬의 웹서버와 핸들러]]
 * [[#CGI의 동작 방식]]
 * [[#정리]]
+* [[#nginx에 FCGI 적용해보기]]
 ___
 ### CGI란?
 
@@ -16,6 +19,9 @@ ___
 CGI는 Common Gateway Interface의 약자로 ==**웹 서버(정적)와 응용 프로그램(파이썬, PHP 등)이 통신하는 규약을 정의한다.**== CGI는 통신 규약이기 때문에 각 언어에 맞춰 다양한 종류가 존재한다.
 
 CGI는 웹서버가 실제 프로그램 코드를 실행하는 방식으로 동작한다. 이때 **요청을 수신할 때마다 프로세스를 생성해 프로그램을 동작 시키므로 요청이 많을 경우 부하가 심하다.**
+
+![[Pasted image 20240507010628.png|https://velog.io/@seanlion/cgi|400]]
+
 ___
 ### 파이썬의 웹서버와 핸들러
 
@@ -480,6 +486,7 @@ if self.have_fork:
 스크립트는 fork와 exec의 순서로 프로세스를 생성해 실행한다. 이를 통해 우리가 확인할 수 있는 것은 <span class="red red-bg">CGI서버는 동적 요청을 전달 받을 때 마다 새로운 프로세스를 생성해 파이썬 스크립트를 실행한다는 것이다.</span>
 
 **이러한 방식은 요청 수가 적을 때는 정상적으로 동작할 수 있겠지만, 요청 수가 많아지면 서버의 부하가 가중된다.** 이제 아래에서 CGI 서버 코드를 작성해 실습 해보자.
+
 ___
 ### CGI 서버 만들어 보기
 
@@ -576,6 +583,25 @@ print(f"This is {body} len: {length}")
 ```
 
 <b><u>코드를 살펴보면 환경 변수 값을 활용해 요청의 길이 정보를 가져오고 이후 표준 입력에서 정해진 길이만큼 데이터를 추출하는 것을 확인할 수 있다.</u></b> 이후 표준 출력으로 값을 반환한다. 이런 식으로 접근하면 POST를 통해 전달한 데이터를 읽는 것도 가능하다.
+
+#### 진짜 프로세스가 여러개 생겨요?
+
+모니터링을 위해 프로세스 별로 30초간 강제 대기가 발생하게 수정하고 크롬이나  curl 등의 도구를 활용해 여러 개의 리 퀘스트를 동시 다발적으로 전송 해보자. (스크립트의 어느 한 구석에 `time.sleep(30)` 을 추가해주자.)
+
+이후 ps 명령어를 통해 이를 모니터링 해보자. add.py를 실행하는 프로세스가 여러개 실행되는 것을 확인해 볼 수 있다.
+
+```bash
+ ps -ef| grep \[.\]py #.py 프로세스만 확인해보자.
+```
+
+```bash
+ 0:00.18 /opt/homebrew/Cellar/python@3.10/3.10.14/Frameworks/Python.framework/Versions/3.10/Resources/Python.app/Contents/MacOS/Python /Users/jin/Library/Mobile Documents/iCloud~md~obsidian/Documents/my_study/network/code/http/cgi/server.py
+  501 25428 24500   0  4:21PM ttys016    0:00.07 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Resources/Python.app/Contents/MacOS/Python /Users/jin/Library/Mobile Documents/iCloud~md~obsidian/Documents/my_study/network/code/http/cgi/cgi-bin/add.py
+  501 25430 24500   0  4:21PM ttys016    0:00.05 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Resources/Python.app/Contents/MacOS/Python /Users/jin/Library/Mobile Documents/iCloud~md~obsidian/Documents/my_study/network/code/http/cgi/cgi-bin/add.py
+  501 25453 24500   0  4:21PM ttys016    0:00.07 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Resources/Python.app/Contents/MacOS/Python /Users/jin/Library/Mobile Documents/iCloud~md~obsidian/Documents/my_study/network/code/http/cgi/cgi-bin/add.py
+  501 25476 24500   0  4:22PM ttys016    0:00.06 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Resources/Python.app/Contents/MacOS/Python /Users/jin/Library/Mobile Documents/iCloud~md~obsidian/Documents/my_study/network/code/http/cgi/cgi-bin/add.py
+```
+
 ___
 ### 정리
 
@@ -583,8 +609,86 @@ ___
 
 **CGI는 이를 극복하기 위한 수단으로 웹 서버와 응용 프로그램 간의 소통하는 규약을 정의한다. 웹서버와 응용 프로그램은 표준 입출력을 통해 서로의 결과 값을 주고 받고 환경 변수를 통해 요청에 대한 정보를 공유한다.**
 
-일반적인 CGI 서버는 요청을 파싱한 후 적합한 위치에 놓인 스크립트를 fork-exec 방식으로 생성해 실행하는데 이는 요청마다 프로세스를 신규로 생성하는 방식이기 때문에 요청 수가 많아질 경우 서버 부하가 큰 방식이다.
+일반적인 CGI 서버는 요청을 파싱한 후 적합한 위치에 놓인 스크립트를 **fork-exec 방식으로 생성해 실행하는데 이는 요청마다 프로세스를 신규로 생성하는 방식이기 때문에 요청 수가 많아질 경우 서버 부하가 큰 방식이다.**
 
 마지막으로 파이썬의 서버 구현 방식에 대한 이야기를 덧붙이자면 파이썬은 서버와 핸들러의 조합으로 웹 서버를 구축하며 서버는 프로토콜과 커넥션을 어떻게 관리 할지를 결정하고 핸들러는 커넥션을 통해 전달 받은 요청을 어떻게 처리할지를 결정한다.
 
 **우리가 사용한 예제 코드에서는 멀티 쓰레드 방식의 서버와 기본적인 CGI 핸들러를 활용하기 때문에 멀티 쓰레드로 커넥션을 관리하고 각 요청은 멀티 프로세스의 방식으로 처리하게 된다.**
+___
+### nginx에 FCGI 적용해보기
+
+진짜 마지막으로 nginx에 FCGI를 적용해 동적 처리를 진행하는 설정을 해보자. 우리가 만들고자 하는 서버의 구조는 다음과 같다.
+
+```mermaid
+flowchart TD 
+	id1[Client] -->|HTTP| id2[Nginx] --->id5{Is Static File?}
+	id5 --> |YES| id6[HTML,CSS,JS]
+	id5 --> |NO, HTTP Forward| id3[FastCGIWrapper] 
+	
+	id3[FastCGIWrapper] -->|CGI| id4[Python]
+```
+
+클라이언트의 요청은 우선적으로 `nginx`에 당도하고 만약 정적 파일일 경우 곧장 해당 파일을 반환하고 만약 동적 요청일 경우 `FCGIWrapper`로 요청을 포워딩 한다. FastCGI는 nginx에서 지원해주며 이를 사용하기 위해선 몇가지 패키지를 설치해야한다.
+
+```bash
+brew install fcgiwrap, spawn-fcgi
+```
+
+이후 nginx의 설정을 수정 해준다. FastCGI에 넘겨줘야 할 매개변수 들을 넘겨준다. 
+
+```nginx
+  server {
+    listen 8080;
+    root YOUR_ROOT_PATH;
+    location / {
+      autoindex off;
+    }
+    location /cgi-bin/ {
+        # FastCGI 서버의 주소와 포트
+        fastcgi_pass  127.0.0.1:9000; #FCGI 프로세스의 주소
+        # FastCGI 매개변수 설정
+        #실행할 스크립트의 위치
+        fastcgi_param SCRIPT_FILENAME YOUR_ROOT_PATH/$fastcgi_script_name;
+        fastcgi_param QUERY_STRING $query_string;
+        fastcgi_param REQUEST_METHOD $request_method;
+        fastcgi_param CONTENT_TYPE $content_type;
+        fastcgi_param CONTENT_LENGTH $content_length;
+        fastcgi_param GATEWAY_INTERFACE CGI/1.1;
+        fastcgi_param SERVER_SOFTWARE nginx/$nginx_version;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+    }
+  }
+```
+
+이제 nginx를 시작하고 FastCGIWraper를 실행한다. 
+
+```bash
+#FCGI가 바인딩할 엔드 포인트와 실행할 FCGI의 경로를 입력한다
+sudo spawn-fcgi -a 127.0.0.1 -p 9000 -f /opt/homebrew/sbin/fcgiwrap
+```
+
+이제 아까처럼 요청을 보내보자. 
+
+```bash
+curl -X GET http://127.0.0.1:8080/cgi-bin/add.py?a=4&b=4
+curl -X POST http://127.0.0.1:8080/cgi-bin/post.py -d '{"data":"data"}'
+curl -X GET http://127.0.0.1:8080/index.html #정적 요청도 잘 처리된다.
+```
+
+요청이 정상적으로 처리 된다면  FCGI가 적절히 동작하고 있는 것이다. 이제 FCGI를 통하면 정말 단일한 프로세스로 여러 요청을 처리하는 방식으로 동작 하는지 확인 해보자. 아까와 동일한 방식으로 실험을 진행한다.
+
+```bash
+  501 27422  9795   0  4:31PM ??         0:00.05 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Resources/Python.app/Contents/MacOS/Python /Users/jin/html//cgi-bin/add.py
+  501 83903 83863   0 토12AM ??         0:01.74 /opt/homebrew/Cellar/python@3.12/3.12.2_1/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python /Users/jin/.vscode/extensions/ms-python.black-formatter-2024.2.0/bundled/tool/lsp_server.py --stdio
+  501 83905 83863   0 토12AM ??         0:04.10 /opt/homebrew/Cellar/python@3.12/3.12.2_1/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python /Users/jin/.vscode/extensions/ms-python.isort-2023.10.1/bundled/tool/lsp_server.py
+```
+
+**여러 개의 요청을 전송해도 단일한 add.py 프로세스만 실행되는 것을 확인할 수 있다. 이는 fcgiwraper 프로세스가 요청을 처리하며 각 요청마다 프로세스를 생성하지 않는 방식으로 동작하기 때문이다.**
+
+#### FCGI의 한계
+FCGI는 CGI의 한계를 극복한 훌륭한 접근 법이며 PHP 등의 언어에서는 아직 까지도 종종 활용되는 기법이다. **하지만 CGI라는 프로토콜을 고수해야 한다는 특징으로 인해 스크립트에서 객체로 HTTP 응답을 진행 한다거나 매개변수 객체 등을 통해 HTTP 요청 정보를 가져오는 것에는 문제가 존재했다.**
+
+이에 따라서 **요청 정보나 응답 정보를 특정 언어의 네이티브 환경에서 조작하고 싶다는 요구가 등장했고 이를 해결하기 위해 WSGI라는 새로운 인터페이스가 등장**했다. WSGI는 순수 파이썬으로 제작된 인터페이스로 기존의 CGI들과 달리 파이썬 객체를 통해 데이터를 주고 받는 것이 가능하다. 이에 따라 근래 사용 되는 파이썬 웹 프레임워크 django, FastAPI, Pyramid, Flask 등은 모두 WSGI나 여기서 파생된 인터페이스를 채택해 사용하고 있다.
+
+
+

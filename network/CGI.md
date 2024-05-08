@@ -20,7 +20,7 @@ CGI는 Common Gateway Interface의 약자로 ==**웹 서버(정적)와 응용 �
 
 CGI는 웹서버가 실제 프로그램 코드를 실행하는 방식으로 동작한다. 이때 **요청을 수신할 때마다 프로세스를 생성해 프로그램을 동작 시키므로 요청이 많을 경우 부하가 심하다.**
 
-![[Pasted image 20240507010628.png|https://velog.io/@seanlion/cgi|400]]
+![https://velog.io/@seanlion/cgi|400](https://obs3dian.s3.ap-northeast-2.amazonaws.com/CGI%20/%20Pasted%20image%2020240507010628.png)
 
 ___
 ### 파이썬의 웹서버와 핸들러

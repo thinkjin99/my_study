@@ -1,6 +1,6 @@
 ### HTTPConnection 
 
-[[HTTPConnection 부터 send까지#HTTPConnection|HTTPConnection]] 에서 우선적으로 다뤘지만, 자세히는 다루지 못해 이하에서 깊게 다루는 작업을 진행해보고자 한다. 앞서 정리했던 내용을 상기해보면, 해당 클래스는 파이썬 내장 라이브러리인 `http.client.HTTPConnection` 을 상속헤 구현되고 있다.  실질적인 HTTP 통신에서 활용되는 연결을 생성하고 메시지를 전송, 수신하며 인코딩, 디코딩 등의 작업도 수행한다.
+[[HTTPConnection 부터 send까지 (1)#HTTPConnection|HTTPConnection]] 에서 우선적으로 다뤘지만, 자세히는 다루지 못해 이하에서 깊게 다루는 작업을 진행해보고자 한다. 앞서 정리했던 내용을 상기해보면, 해당 클래스는 파이썬 내장 라이브러리인 `http.client.HTTPConnection` 을 상속헤 구현되고 있다.  실질적인 HTTP 통신에서 활용되는 연결을 생성하고 메시지를 전송, 수신하며 인코딩, 디코딩 등의 작업도 수행한다.
 
 이제 자세하게 커넥션 클래스를 분석해보자. 우리가 분석해야할 요소는 다음과 같다.
 * 연결을 어떻게 생성하는가?

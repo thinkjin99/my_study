@@ -129,7 +129,8 @@ run()
 실질적인 서버 기능은 모두 `serve_forever` 내부에 구현돼 있다. 이제 함수의 코드를 한번 살펴보자.
 
 ```python
- def serve_forever(self, poll_interval=0.5):
+class BaseServer:
+	 def serve_forever(self, poll_interval=0.5):
         """Handle one request at a time until shutdown.
 
         Polls for shutdown every poll_interval seconds. Ignores

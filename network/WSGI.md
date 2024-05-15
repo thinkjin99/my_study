@@ -2,31 +2,35 @@
 * [pep333](https://peps.python.org/pep-0333/)
 * [WSGI VS CGI](https://stackoverflow.com/questions/219110/how-python-web-frameworks-wsgi-and-cgi-fit-together)
 * [WSGI 뜯어보기](https://devocean.sk.com/experts/techBoardDetail.do?ID=165282&boardType=experts&page=&searchData=&subIndex=&idList=#none)
+* [WSGI 뜯어보기2](https://devocean.sk.com/search/techBoardDetail.do?ID=165337&boardType=&query=wsgi&searchData=&page=&subIndex=&idList=)
 ___
 ### 개요
-* WSGI란
-* WSGI의 동작방식
-* WAS란?
-* 장고는 어떻게 동작하나요?
+* [[#WSGI란]]
+* [[#WSGI의 구조]]
+* [[#WSGI 정리]]
+* [[#WSGI의 규칙들]]
+* [[#WSGI 뜯어보기]]
+* [[#WSGI 서버 돌려보기]]
 ___
 ### WSGI란
 
 WSGI란 Web Server Gateway Interface의 약자로 웹서버와 응용 프로그램의 중간에 위치해 서로간의 통신을 가능하게 한다. 읭? 그러면 일전에 다룬 [[CGI]]와 다를게 없지 않나? 라는 생각이 든다면 당신의 생각이 맞다. 적절히 이해했다.
 
-WSGI는 파이썬에 특화된 인터페이스로 CGI를 기반에 두고 있긴 하지만 엄밀히 따지자면 CGI는 아니다. <b><u> 정확히 표현하자면 파이썬 특화 FastCGI라고 정의하는 것이 적절하다.</b></u> CGI는 표준 입출력과 환경변수를 활용해 HTTP 요청 정보를 획득하고 응답 정보를 반환한다는 규칙만 정의할 뿐 어떤 언어를 활용해서 구현 하라는 규칙은 존재하지 않는다. (이는 FastCGI도 마찬가지이다)
+**WSGI는 파이썬에 특화된 인터페이스**로 CGI를 기반에 두고 있긴 하지만 엄밀히 따지자면 CGI는 아니다. CGI는 표준 입출력과 환경변수를 활용해 HTTP 요청 정보를 획득하고 응답 정보를 반환한다는 규칙만 정의할 뿐 어떤 언어를 활용해서 구현 하라는 규칙은 존재하지 않는다. (이는 FastCGI도 마찬가지이다)
 
 이에 따라서 **HTTP 정보를 순수 파이썬으로 파싱해 파이썬 객체로 응용 프로그램에 전달하고 응용 프로그램에서도 곧장 파이썬 객체를 반환해 웹서버로 전달하고 싶다는 욕구가 발생했다.** 니즈가 많은 만큼 해결법도 다양했는데, 이로 인해 웹서버 API의 춘추 전국 시대가 열리게 된다.
 
-#### 역사적 배경
 사실 WSGI이전에도 웹 서버와 파이썬을 연결하는 API는 많이 존재했다. mod_python과 같이 웹 서버 소프트웨어 자체에 파이썬 인터프리터를 탑재해 웹 서버 내부에서 처리하는 방식도 존재했고 아예 웹서버 자체를 파이썬으로 작성해 곧장 파이썬 객체를 다루고 처리하는 방법도 존재했다.
 
 문제는 웹서버와 연결하는 방법이 다양하다 보니 실질적으로 이러한 **API 뒷단에서 동작하는 프레임워크 입장에서는 지원해야하는 요소의 수가 많아지고 번잡해지는 상황이 발생했다.** 이를 위해 기준을 작성할 필요가 발생했고 이때 그 기준으로 등장한 것이 WSGI이기도 하다.
 
-> The availability and widespread use of such an API in web servers for Python – whether those servers are written in Python (e.g. Medusa), embed Python (e.g. mod_python), or invoke Python via a gateway protocol (e.g. CGI, FastCGI, etc.) – would separate choice of framework from choice of web server, freeing users to choose a pairing that suits them, while freeing framework and server developers to focus on their preferred area of specialization.
+> The availability and widespread use of such a2n API in web servers for Python – whether those servers are written in Python (e.g. Medusa), embed Python (e.g. mod_python), or invoke Python via a gateway protocol (e.g. CGI, FastCGI, etc.) – would separate choice of framework from choice of web server, freeing users to choose a pairing that suits them, while freeing framework and server developers to focus on their preferred area of specialization.
 > 
 > **This PEP, therefore, proposes a simple and universal interface between web servers and web applications or frameworks: the Python Web Server Gateway Interface (WSGI).** [pep333](https://peps.python.org/pep-0333/)
 
 당시 문서를 확인하면 자바와 비교를 많이 하는데 이때 자바는 서블릿 기반의 공통된 시스템을 활용하고 있었기에 어떤 프레임 워크를 사용해도 웹서버를 변경해야 한다거나 하는 문제가 존재하지 않았다. **이러한 구조를 파이썬에도 도입해 파이썬 <-> 웹 서버 간의 통일된 인터페이스를 생성하는 것이 WSGI의 탄생 비화이다.**
+
+WSGI는 요청을 받을 경우 특정한 파이썬 콜러블 객체를 실행하고 매개 변수로는 env라는 변수에 dict 타입으로 전달해야 한다는 파이썬에 특화된 [[#WSGI의 규칙들|규칙]]이 존재한다. **==WSGI는 이런 파이썬에 특화된 규칙을 설정 함으로써 기존 CGI에서 아쉬웠던 파이썬 네이티브로 처리하지 못한다는 문제를 해결하고 난잡했던 파이썬 어플리케이션 <-> 웹서버 간의 통신 프로토콜을 통일했다.==**
 
 >[!info]
 >**This PEP, therefore, proposes a simple and universal interface between web servers and web applications or frameworks: the Python Web Server Gateway Interface (WSGI).**

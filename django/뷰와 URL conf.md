@@ -161,13 +161,13 @@ Food는 eat라는 메서드를 갖고 있고 이를 피자와 치킨은 각각 �
 강결합의 그림은 아래와 같다.
 ```mermaid
 flowchart LR
-Pizza --> Person
+Person --> Pizza
 ```
 
 약결합의 그림은 아래와 같다.
 ```mermaid
 flowchart LR
-Pizza --> Food --> Person
+Person --> Food --> Pizza 
 ```
 
 이를 통해 사람은 Food만 신경쓰면 된다.

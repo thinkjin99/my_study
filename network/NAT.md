@@ -27,7 +27,8 @@ ___
 	**포트 번호를 활용해 사설 IP를 구분하는 방식이다**. 다수의 사설 IP가 하나의 공인 IP에 대응되고 이때 각 커넥션을 포트 번호를 활용해 구분한다. 예를 들어 공인 ip가 223.28.3.1일때 사설 ip가 3개 존재하면 223.28.3.1:10,223.28.3.1:20,223.28.3.1:30 등으로 포트를 다르게 활용해 통신을 진행한다.
 	요즘 공유기는 대다수가 이 방법을 사용한다.
 
-![](https://my-study.s3.ap-northeast-2.amazonaws.com/NAT%20/%20Pasted%20image%2020231222172040.png)
+![](https://obs3dian.s3.ap-northeast-2.amazonaws.com/NAT%20/%20Pasted%20image%2020231222172040.png)
+
 ____
 ### EC2와 NAT
 
@@ -37,7 +38,8 @@ ec2를 사용하다보면 재부팅을 진행할 때마다 새로운 퍼블릭 i
 
 정리하면 ec2 인스턴스는 특정 VPC 내부에 특정 서브넷에 위치하고 어떠한 ENI에 연결된 상태이다. 이미지로 나타내면 아래와 같다.
 
-![https://dev.classmethod.jp/articles/amazon-vpc-eni-deep-dive/](https://my-study.s3.ap-northeast-2.amazonaws.com/NAT%20/%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202024-03-29%20%EC%98%A4%ED%9B%84%204.10.49.png)
+![https://dev.classmethod.jp/articles/amazon-vpc-eni-deep-dive/|500](https://obs3dian.s3.ap-northeast-2.amazonaws.com/NAT%20/%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202024-06-07%20%EC%98%A4%ED%9B%84%209.47.36.png)
+
 
 이러한 상황에서 EC2가 송신을 진행하고 싶다면 ENI를 타고 인터넷 게이트웨이로 나가 송신을 진행해야 한다. 데이터를 수신하기 위해선 게이트웨이로 들어온 데이터가 적절한 서브넷으로 전달돼야 한다. 이를 위해 라우팅 테이블을 만들어 네트워크 데이터를 알맞은 서브넷으로 전달한다. 
 

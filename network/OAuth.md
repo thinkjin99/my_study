@@ -1,10 +1,14 @@
 ### 출처
 * [Oauth란](https://showerbugs.github.io/2017-11-16/OAuth-%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%BC%EA%B9%8C)
+* [네이버 로그인 가이드](https://developers.naver.com/docs/login/devguide/devguide.md#5--%EB%84%A4%EC%9D%B4%EB%B2%84-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%EC%82%AC%EC%9A%A9%EC%9E%90-%ED%94%84%EB%A1%9C%ED%95%84-%EA%B0%B1%EC%8B%A0-%EB%B0%8F-%EC%9E%AC%EC%9D%B8%EC%A6%9D)
 ___
 ### 개요
 * [[#OAuth이란]]
 * [[#OAuth는 왜 만들었을까?]]
 * [[#OAuth2.0]]
+* [[#OAuth로 회원가입이 가능한가요?]]
+* [[#OAuth 직접 구현해보기]]
+* [[#OAuth로 회원가입과 로그인]]
 ___
 ### OAuth이란
 
@@ -41,8 +45,7 @@ ___
 
 2.0이 되면서 OAuth는 HTTPS를 필수로 지원하게 변경됐다. 이에따라 기존의 암호화를 위해 사용했던 Hmac 등의 알고리즘으로 부터 자유로워지면서 OAuth 자체의 구조는 단순하게 변경됐다.
 
-2.0은 현재까지도 사용하는 방법이고 오늘을 기준으로 OAuth를 제공하는 모든 서비스는 2.0을 활용한다. 
-2.0의 구성을 살펴보자.
+2.0은 현재까지도 사용하는 방법이고 오늘을 기준으로 OAuth를 제공하는 모든 서비스는 2.0을 활용한다. 2.0의 구성을 살펴보자.
 
 * Resource Owner: 사용자
 * Client: 제 3자 어플리케이션으로 Resource Server의 정보를 제공 받고 싶어하는 애플리케이션이다.
@@ -89,3 +92,133 @@ ___
 
 #### 엑세스 토큰과 리프레시 토큰을 왜 서비스 서버가 관리해요?
 해당 토큰의 발급 대상이 사용자가 아닌 서비스 서버이기 때문이다. OAuth과정에서 발급되는 토큰은 해당 서비스 전용으로 발급된 토큰이다. 이에따라 적절한 권한이 부여 돼있다.
+
+#### 왜 인증 코드를 클라이언트에 전달하고 리다이렉트하나요?
+서비스가 인증 코드를 전달 받는 과정을 보면 인증 서버가 인증된 사용자에게 리다이렉트 요청을 전송하고 사용자가 해당 URL로 인증 코드를 전송하는 방식으로 동작한다. 굳이 이렇게 할 필요 없이 인증 서버가 곧장 서비스의 벡엔드에 인증 코드를 전달할 수 는 없을지에 대한 궁금증이 발생한다. 
+
+이러한 방식을 택한 이유는 **인증 서버와 연결된 주체가 사용자이기 때문**이다. **서비스는 인증서버로 클라이언트를 보내줄 뿐 인증 서버와의 연결점은 존재하지 않는다**. 이에따라 클라이언트와 인증서버가 인증을 진행하고 이후 결과를 별도의 리다이렉팅을 통해 인증서버에 전달하는 것이다.
+___
+### OAuth 직접 구현해보기
+
+네이버 로그인을 직접 구현해보자. 네이버 OAuth 서버를 활용해 네이버 로그인을 진행하고 이를 기반으로 네이버 프로필을 받아오자. 진행순서는 다음과 같다.
+
+* **우선적으로 네이버 로그인 페이지로 접속한다.**
+* **네이버 로그인을 진행한다.**
+* **네이버는 사용자에게 콜백 URL을 전달한다.**
+* **우리 서버의 콜백 URL에 등록된 API로 네이버의 인증 코드가 전달된다.**
+* **전달 받은 인증 코드와 API 엑세스 키를 활용해 네이버 엑세스 토큰을 발급 받는다**
+* **발급받은 엑세스 토큰을 활용해 네이버 프로필을 발급 받는다.**
+
+우선적으로 네이버 인증 API 활용을 위한 엑세스 키를 발급받는 작업부터 진행해보자. OAuth 키를 발급 받기 위해서는 네이버에 키를 사용할 어플리케이션을 등록하는 작업부터 진행해야한다.
+
+![500](https://obs3dian.s3.ap-northeast-2.amazonaws.com/OAuth%20/%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202024-08-27%20%EC%98%A4%ED%9B%84%205.03.03.png)
+
+이제 네이버 로그인을 진행할 html 파일을 작성해보자. 우리는 해당 html의 링크로 접속해 네이버 로그인을 진행할 것이다.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+<a href="https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=dPMqyE4amp5HCyF4QdkK&state=STATE_STRING&redirect_uri=http://127.0.0.1:8080/naver">naver login</a>
+</body>
+</html>
+```
+
+링크에 쿼리 파라미터로 전달되는 `redirect_uri`라는 변수에 집중해보자. **이는 네이버에서 로그인이 성공할 경우 인증 코드를 전달할 우리 서버의 URL 경로를 의미한다.**
+
+리다이렉트 URL로 클라이언트는 인증 코드를 전달하고 이를 통해 우리 서버는 네이버에 사용자가 인증된 유저라는 것을 증명할 수 있다. 인증을 받았다면 이제 우리 서비스는 네이버 엑세스 토큰을 발급 받을 수 있다.
+
+클라이언트로 부터 인증 코드를 전달 받고 네이버 엑세스 토큰을 발급받는 API를 작성해보면 아래와 같다.
+
+```python
+@app.get("/naver")
+async def get_access_token(
+    code: str, state: str, token: Token = Depends(get_token_class)
+):
+    naver_client_id = ""
+    naver_client_secret = ""
+    token_issue_url = f"https://nid.naver.com/oauth2.0/token"
+    resp = requests.get(
+        token_issue_url,
+        params={
+            "grant_type": "authorization_code",
+            "client_id": naver_client_id,
+            "client_secret": naver_client_secret,
+            "code": code, #인증 코드
+            "state": state,
+        },
+    ) #엑세스 토큰을 발급
+    token.set_token(resp.json())
+    return {"access_token": token}
+```
+
+엑세스 토큰까지 발급 받았다면 사실상 네이버 프로필을 받을 모든 준비가 완료 됐다. 이제 엑세스 토큰을 활용해 네이버 프로필을 조회해보자.
+
+```python
+@app.get("/profile")
+async def get_naver_profile(token: Token = Depends(get_token_class)):
+    profile_url = "https://openapi.naver.com/v1/nid/me"
+    header = {"Authorization": f"Bearer {token.get_token()}"}
+    resp = requests.get(profile_url, headers=header)
+    return resp.json()
+```
+
+결과는 아래와 같이 전달된다.
+
+```json
+{"resultcode":"00","message":"success","response":{"id":"","gender":"M","mobile":"010","mobile_e164":"+82","name":"","birthday":"","birthyear":""}}
+```
+
+___
+### OAuth로 회원가입과 로그인
+
+이제 OAuth로 회원가입하는 방법을 생각해보자. 네이버에서 기본적으로 전달 받는 데이터가 존재 하므로 이미 입력 받은 데이터는 제외하고 별도의 데이터가 필요한 경우에만 입력을 진행하면 된다.
+
+우선적으로 OAuth를 통해 모든 정보를 입력 받는다는 것을 가정하고 작업을 진행해보자. 우리에게 필요한 테이블은 3개로 유저, OAuth 계정, OAuth 플랫폼 테이블이다. 각 테이블의 생김새는 아래와 같다.
+
+```mermaid
+erDiagram
+    User {
+        int id PK
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+    
+    OAuthProvider {
+        int id PK
+        varchar name
+        varchar display_name
+        datetime created_at
+        datetime updated_at
+    }
+    
+    OAuthAccount {
+        int id PK
+        int user_id FK
+        int provider_id FK
+        varchar provider_user_id
+        text access_token
+        text refresh_token
+        datetime token_expiry
+        datetime created_at
+        datetime updated_at
+    }
+    
+    User ||--o{ OAuthAccount : "has"
+    OAuthProvider ||--o{ OAuthAccount : "provides"
+```
+
+이렇게 테이블을 분리해 관리할 경우 각 OAuth 제공 플랫폼 별로 회원 가입이 가능한 상황을 방지할 수 있고 유저와 플랫폼이 제공하는 정보를 분리해 구분할 수 있어 확장이 용이하다. 
+
+로그인은 어떻게 진행할 수 있을까? **OAuth 계정 id를 토대로 로그인을 진행할 수 있다. 이는 각 OAuth 제공 업자에서 각 유저를 구분하기 위해 사용하는 유일한 유니크 키이기 때문에 이를 활용하면 특정 유저를 식별하는 것이 가능해진다.** 
+
+따라서 **OAuth 로그인을 진행하고 제공자로부터 전달 받은 id를 기반으로 해당 id가 서비스 DB에 존재하는지 검증함으로써 로그인을 성사 시킬 수 있다.**
+
+
+
+

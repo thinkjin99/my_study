@@ -1,4 +1,5 @@
 ### 출처
+
 * https://rammuking.tistory.com/entry/Epoll%EC%9D%98-%EA%B8%B0%EC%B4%88-%EA%B0%9C%EB%85%90-%EB%B0%8F-%EC%82%AC%EC%9A%A9-%EB%B0%A9%EB%B2%95 (epoll 기초)
 * https://www.marccostello.com/async-await-pitfall-1-blocking-async-calls/ (async-await in python)
 * https://reakwon.tistory.com/117 (select)
@@ -6,6 +7,7 @@
 * https://niklasjang.github.io/backend/select-poll-epoll/ (epoll & select)
 ___
 ### 개요
+
 [[#Intro]]
 [[#Why Async-Blocking is bad]]
 [[#await]]
@@ -18,7 +20,7 @@ ___
 
 지난시간 [[동기와 비동기 (Blocking, None-Blocking)]]를 학습하며 동기, 비동기의 차이 Blocking, None-Blocking의 차이를 학습했다. 동기는 호출 결과를 신경쓰는 방식, 블락킹은 함수의 실행 흐름이 정체되는 현상이라는 것을 기억할 것이다. 또한 비동기와 논-블락킹은 이들 각각과 상반된 키워드들이라는 것까지 떠올릴 수 있어야 한다. 이제 이러한 키워드들이 어디서 어떻게 사용 되는지를 파악할 것이다. 
 
-**==비동기와 논블락킹을 활용하는 사례의 99%는 IO와 관련된 작업들이다. IO가 아닌 작업일 경우 백 그라운드에서 실행할 수 없기 때문에 논 블락킹이 불가능하기 때문이다.==** 예를 들어 큰 행렬 연산을 비동기로 실행한다 하면 단일 스레드라고 할때 해당 연산이 실행되는 동안 실행 흐름은 블락 되므로 일반적인 동기로 처리하는 것과 큰 차이가 없다. 하지만 IO의 경우 흐름을 블락하지 않고 백 그라운드에서 처리가 가능하므로 비동기, 논 블락킹과 조합하기 좋은 작업이다.  
+**==비동기와 논블락킹을 활용하는 사례의 99%는 IO와 관련된 작업들이다. IO가 아닌 작업일 경우 백 그라운드에서 실행할 수 없기 때문에 논 블락킹이 불가능하기 때문이다.==** 예를 들어 큰 행렬 연산을 비동기로 실행한다 하면 단일 스레드라고 할때 해당 연산이 실행되는 동안 실행 흐름은 블락 되므로 일반적인 동기로 처리하는 것과 큰 차이가 없다. 하지만 IO의 경우 흐름을 블락하지 않고 백 그라운드에서 처리가 가능하므로 비동기-논 블락킹과 조합하기 좋은 작업이다.  
 
 > [!info]
 > **CPU burst 작업이면 백 그라운드 실행이 불가능하므로 함수의 실행시간 동안 흐름이 멈추게 되므로 비동기의 효과가 없다.**
@@ -28,7 +30,7 @@ ___
 
 비동기-블락킹은 아예 블락킹한 로직을 비동기로 구현하는 경우 뿐만 아니라 **블락킹 하는 영역이 조금이라도 포함되면 모두 비동기-블락킹이라 칭한다.** 예를 들어 특정 리퀘스트를 비동기로 호출하고 응답을 동기-블락킹 방식으로 처리할 경우도 비동기-블락킹에 해당한다. 이는 큰 성능 저하를 야기하는데,아래의 코드를 살펴보자.
 
-```python
+```python hl:21
 COUNT = 10
 URLS = [
     "http://www.foxnews.com/",
@@ -63,7 +65,7 @@ async def main():
 
 아래의 코드는 다음과 같은 순서로 동작한다.
 
-1. 특정 리퀘스트를 복수개 비동기로 전송
+1. 복수개 리퀘스트를 비동기로 전송
 2. 리퀘스트는 전부 백 그라운드에서 동시 실행
 3. 리퀘스트 완료 파악
 4. 응답을 바이트 단위로 읽음 (블락킹 발생)
@@ -76,6 +78,7 @@ ___
 
 ___
 ### await
+
 ```python
 import asyncio
 import random
@@ -103,6 +106,7 @@ if __name__ == "__main__":
 이에 따라 **비동기 함수가 명시적으로 종료될때 까지 실행흐름을 블락하는 기능이 필요해졌는데 이때 사용하는 것이 await**이다. await를 사용하면 해당 함수의 실행이 모두 완료될 때까지 실행 흐름이 블락되며 이에 따라 await이후로는 함수의 실행 완료를 보장할 수 있다.
 
 여기서 생각해볼 점은 함수의 완료를 어떻게 파악하느냐이다. 위의 gather 함수는 어떻게 모든 함수의 종료를 파악하는 걸까? 가장 기본적인 방법으로 busy-waiting을 떠올릴 수 있다.
+
 ```python
 done_count = 0 #task done count
 while done_count < task_count:
@@ -110,7 +114,7 @@ while done_count < task_count:
 			task_count += 1
 ```
 
-하지만 앞서 말했듯이 busy-waiting은 cpu 낭비를 많이 발생 시키는 비효율적 방법이다. gather의 경우 이벤트 루프의 도움을 받아 이를 해결하는데 이는 차차 알아보고 이하에서는 근본적으로 어떻게 다중 IO에서 busy-waiting을 피하면서 완료를 감지 했는지 그 발전 역사를 살펴 보도록 하자.
+하지만 앞서 말했듯이 busy-waiting은 cpu 낭비를 많이 발생 시키는 비효율적 방법이다. gather의 경우 이벤트 루프의 도움을 받아 이를 해결하는데 이는 차차 알아보고 이하에서는 근본적으로 **어떻게 다중 IO에서 busy-waiting을 피하면서 완료를 감지 했는지 그 발전 역사를 살펴 보도록 하자.**
 ___
 ### select
 
@@ -118,7 +122,9 @@ select()는 POSIX에 따라 구현돼야 하는 시스템 콜 중 하나로, **=
 
 > <b><u>select() allows a program to monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready" for some class of I/O operation (e.g., input possible).</u></b> A file descriptor is considered ready if it is possible to perform a corresponding I/O operation (e.g.,read(2), or a sufficiently small write(2)) without blocking. 
 
-```python
+**select는 파일 디스크립터 집합 중 어떠한 파일의 IO 완료 이벤트가 발생할 때까지 대기한다.**
+
+```python hl:28
 import socket
 import select
 
@@ -129,7 +135,7 @@ HTTP_MSG = f"GET / HTTP/1.1\r\nHost: {HOST}\r\n\r\n"
 
 def sync_select():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # 블로킹 모드를 비블로킹 모드로 변경
+    # 블로킹 모드를 논 블로킹 모드로 변경
     http_request = HTTP_MSG.encode("utf-8")
     client_socket.connect((HOST, 80))
 
@@ -177,19 +183,24 @@ def sync_busy_wait():
 
 위의 예시는 select를 활용해 대기를 했을 때와 busy-wait을 했을 때의 동작 차이를 한눈에 비교할 수 있는 예시이다. 계속해서 while문을 탐색하는 busy-wait 방식과 달리 select 방식을 사용하면 한번만 대기를 수행하는 것을 확인할 수 있다. 이는 **==select가 등록한 파일 디스크립터에 입출력 가능 이벤트가 발생할 때까지 블락하는 방식으로 동작하기 때문이다.==**
 
-**select() 는 FD_SET(등록한 파일 디스크립터 집합) 바이트 배열의 특정 인덱스를 검사하는 방법으로 해당 파일의 상태를 파악**하는데, 이때 검사하는 index는 검사하고자 하는 파일의 fd값과 동일하다.
+유의해야할 부분은 비지웨이팅은 하지 않는다는 것이다. ==**select는 이벤트를 대기하는 동안 CPU 리소스를 활용하지 않는다. 커널은 이벤트가 발생하기 이전까지 해당 프로세스를 대기 큐에 집어넣어 놓고 이벤트가 발생했을 때 해당 프로세스를 깨운다.**== 이에따라 주기적으로 폴링(IO 완료 여부 확인)을 진행할 필요가 없어진다.
 
-![](https://my-study.s3.ap-northeast-2.amazonaws.com/IO%20Multiplexing%20/%20Pasted%20image%2020231121183520.png)
+**select() 는 FD_SET(등록한 파일 디스크립터 집합) 바이트 배열의 특정 인덱스를 검사하는 방법으로 해당 파일의 상태를 파악**하는데, 이때 검사하는 인덱스가 검사하고자 하는 파일의 fd값을 의미한다.
 
-fd값이 3인 소켓의 이벤트를 확인하고 싶은 경우 다음과 같이 동작한다. **select()는 계속해서 3까지의 모든 fd에 대한 이벤트를 조사하다 3에 이벤트가 발생할 경우 FD_SET의 해당 fd 인덱스의 값을 1로 활성화 한다.** 이는 타임아웃이 발생할 때까지 반복되는데 <b><u>관심있는 FD는 3번 하나인데 이를 위해 4개를 감시해야하니 무척 비효율적이다.</u></b> 이후 이벤트가 발생한 fd에서 데이터를 읽은 후 FD_SET을 다시 초기화 해준다.
+![[Pasted image 20231121183520.png]]
 
-![](https://my-study.s3.ap-northeast-2.amazonaws.com/IO%20Multiplexing%20/%20Pasted%20image%2020231121183535.png)
+fd 값이 3인 소켓의 이벤트를 확인하고 싶은 경우 다음과 같이 동작한다. select()는 우선적으로 크기가 1024인 FD_SET 배열을 전달 받는다. <u><b>select가 특정한 fd 값에 이벤트가 발생 했음을 확인하기 위해서는 바이트 배열의 인덱스를 순차적으로 탐색하며 이벤트의 발생 여부를 확인해야 한다. select는 이벤트가 발생 했음은 감지하지만 정확히 어떤 fd에서 이벤트가 발생했는지는 파악하지 못한다. 따라서 순차적으로 배열을 탐색하며 어떤 fd에서 이벤트가 발생했는지 확인한다. </b></u>
+
+배열의 인덱스는 0부터 시작하기 때문에 select는 필연적으로 감시하고 싶은 fd값 + 1 만큼의 탐색을 진행해야만 한다. 만약 fd값이 3인 파일의 이벤트를 확인하기 위해서는 검사해야하는 fd의 개수가 최소 4개가 된다. 
+
+![[Pasted image 20231121183535.png]]
 
 따라서 select의 동작순서를 정리하면 다음과 같다.
 
-1. 내가 관심있는 fd + 1 크기의 FD_SET 큐를 생성한다.
-2. 해당 큐를 루프하며 이벤트를 탐지한다. 
-3. 이벤트를 탐지한 후에는 다시 FD_SET을 비활성화로 초기화 한다.
+1. FD_SET 바이트 배열을 생성한다.
+2. 이벤트가 발생할 때까지 대기한다 (이때 CPU는 쉬고 있다)
+3. 이벤트가 발생하면 FD_SET 바이트 배열에서 이벤트가 어디서 발생했는지 확인한다.
+4. 이벤트를 탐지한 후에는 다시 FD_SET을 초기화 한다.
 
 C언어로 작성된 select 사용 예시를 살펴보면 확인할 수 있다.
 
@@ -197,7 +208,7 @@ C언어로 작성된 select 사용 예시를 살펴보면 확인할 수 있다.
 while (1)
 	{
 		FD_ZERO(&readFds); //파일 디스크립터 집합 초기화
-		FD_SET(socket->socket, &readFds); //집합에 파일 디스크립터 등록
+		FD_SET(socket->socket, &readFds); //fd를 SET에 추가
 		select(socket->socket + 1, &readFds, NULL, NULL, &timeout); //타임아웃까지 집합 검사
 
 		if (FD_ISSET(socket->socket, &readFds)) //fd에 이벤트가 발생했는지 커널에 질문
@@ -218,7 +229,7 @@ while (1)
     return NULL;
 ```
 
-<span class="red red-bg"><b>이러한 방식에는 문제가 있는데, 가뜩이나 비효율적으로 큰 FD_SET을 매번 검사하고 초기화하는 작업을 반복해야 한다는 것이다.</b></span>  select를 활용하면 단일 스레드에서 다중 IO를 구현할 수 있다. 하지만 **fd가 비효율적으로 관리되는 문제,  잦은 모드 스위칭 발생 문제** 등의 이슈가 존재하고 이로 인해 잘 사용하지 않는다.
+<span class="red red-bg"><b>이러한 방식에는 문제가 있는데, 가뜩이나 비효율적으로 큰 FD_SET을 매번 검사하고 초기화하는 작업을 반복해야 한다는 것이다.</b></span>  물론 select를 활용하면 단일 스레드에서 다중 IO를 구현할 수 있지만 **fd가 비효율적으로 관리되는 문제,  잦은 모드 스위칭 발생 문제** 등의 이슈가 존재하고 이로 인해 잘 사용하지 않는다.
 
 #### FD_SET과 모드 스위칭 문제
 
@@ -236,10 +247,9 @@ epoll은 select의 단점을 보완해 만든 IO 감지 모델을 말한다. sel
 2. fd를 연속으로 탐지해야 하기에 FD_SET의 크기가 큼
 3. 커널 영역에 접근할 일이 잦음 (FD_ISSET)
 
-
 **epoll은 내가 이벤트를 감지하고 싶은 파일을 특정해 커널에 전달할 수 있다.** 따라서 관심있는 fd의 이벤트만을 감지하는 것이 가능하다. 또한 커널에서 FD_SET(Event Set)을 관리하기 때문에 유저-커널 통신으로 인한 오버헤드가 적은 편이다. 
 
-또한 **epoll을 활용할 경우 select에 비해 스위칭도 적게 할 수 있다**. select의 경우 관심있는 fd들을 등록한 FD_SET이 유저영역에 위치해 매번 커널로 복사해줘야만 했다. 하지만 **epoll의 경우 이벤트 구독 리스트(FD_SET과 흡사)는 커널 영역에 위치하기 때문에 유저가 매번 관심있는 fd 리스트를 넘겨줄 필요가 없고 이로 인해 스위칭 발생이 적다**. 유저는 커널 영역에 위치한 준비된 이벤트 리스트만 접근해 어떤 이벤트가 발생 했는지만 확인하면 된다.
+또한 **epoll을 활용할 경우 select에 비해 스위칭도 적게 할 수 있다**. select의 경우 FD_SET이 유저영역에 위치해 매번 커널로 복사해줘야만 했다. 또한 어떤 fd에서 이벤트가 발생 했는지 순차 탐색을 하는 과정이 필요하다. 하지만 **epoll의 경우 이벤트 구독 리스트(FD_SET과 흡사)는 커널 영역에 위치하기 때문에 유저가 매번 관심있는 fd 리스트를 넘겨줄 필요가 없고 이로 인해 스위칭 발생이 적다**. 유저는 커널 영역에 위치한 준비된 이벤트 리스트만 접근해 어떤 이벤트가 발생 했는지만 확인하면 된다.
 
 > [!info]
 > **==epoll은 관심있는 fd만 등록해 이벤트를 감지하고 커널에서 처리하는 방식이다.==**
@@ -247,7 +257,7 @@ epoll은 select의 단점을 보완해 만든 IO 감지 모델을 말한다. sel
 ___
 ### epoll 더 알아보기
 
-<b><u>epoll API는 epoll 인스턴스를 통해 커널과 통신하는 방법으로 동작한다.</u></b> epoll 인스턴스는 두가지 리스트를 포함하는데 하나가 **이벤트를 구독중인 fd를 등록하는 리스트**이고 하나는 **IO가 준비된 준비된 fd를 관리하는 리스트**이다. 
+<b><u>epoll API는 epoll 인스턴스를 통해 커널과 통신하는 방법으로 동작한다.</u></b> epoll 인스턴스는 두가지 리스트를 포함하는데 하나가 **이벤트를 구독중인 fd를 등록하는 리스트**이고 하나는 **IO가 준비된 fd를 관리하는 리스트**이다. 
 
 epoll 인스턴스는 소켓과 흡사하게 커널과 유저 영역 사이의 인터페이스로 동작한다. 따라서 직접 **FD_SET을 커널에 넘겨주며 IO 완료 여부를 물어봐야 했던 select와 달리 유저 영역에 있는 인스턴스의 상태만 체크하면 되므로 epoll이 더 효율적으로 동작한다. (모드 스위칭이 적다)**
 
@@ -281,6 +291,7 @@ ___
 ### epoll 써먹기
 
 아래는 epoll을 활용한 실제 TCP 소켓 서버이다. 코드를 살펴보자.
+
 ```c
 typedef struct {
     int sockfd;
@@ -293,6 +304,7 @@ void initClient(Client *client, int sockfd) {
     memset(client->buffer, 0, sizeof(client->buffer));
 }
 ```
+
 클라이언트 연결을 구조체를 활용해 표현한다. 클라이언트 구조체는 소켓과 해당 소켓의 버퍼를 포함한다.
 
 ```c
@@ -312,6 +324,7 @@ void receiveData(Client *client) {
     }
 }
 ```
+
 클라이언트로 부터 전달된 데이터를 읽는다. 이후 소켓 버퍼를 비워주는 작업을 진행한다. 
 
 ```c
@@ -508,6 +521,7 @@ CMD ["/bin/bash"]
 ```
 
 위의 도커 파일을 설정한 후 아래의 커맨드를 입력한다. 이후 접속한 터미널에서 server.c를 컴파일 후 실행하면 된다.
+
 ```bash
 docker build -t epoll .
 docker run --rm -it -p 8080:12345 epoll:latest
@@ -517,6 +531,7 @@ gcc server.c && ./a.out
 ```
 
 테스트를 위한 클라이언트 코드는 아래와 같다.
+
 ```c
 #include <stdio.h>
 #include <stdlib.h>

@@ -187,13 +187,13 @@ def sync_busy_wait():
 
 **select() 는 FD_SET(등록한 파일 디스크립터 집합) 바이트 배열의 특정 인덱스를 검사하는 방법으로 해당 파일의 상태를 파악**하는데, 이때 검사하는 인덱스가 검사하고자 하는 파일의 fd값을 의미한다.
 
-![[Pasted image 20231121183520.png]]
+![](https://obs3dian.s3.ap-northeast-2.amazonaws.com/IO%20Multiplexing%20/%20Pasted%20image%2020231121183520.png)
 
 fd 값이 3인 소켓의 이벤트를 확인하고 싶은 경우 다음과 같이 동작한다. select()는 우선적으로 크기가 1024인 FD_SET 배열을 전달 받는다. <u><b>select가 특정한 fd 값에 이벤트가 발생 했음을 확인하기 위해서는 바이트 배열의 인덱스를 순차적으로 탐색하며 이벤트의 발생 여부를 확인해야 한다. select는 이벤트가 발생 했음은 감지하지만 정확히 어떤 fd에서 이벤트가 발생했는지는 파악하지 못한다. 따라서 순차적으로 배열을 탐색하며 어떤 fd에서 이벤트가 발생했는지 확인한다. </b></u>
 
 배열의 인덱스는 0부터 시작하기 때문에 select는 필연적으로 감시하고 싶은 fd값 + 1 만큼의 탐색을 진행해야만 한다. 만약 fd값이 3인 파일의 이벤트를 확인하기 위해서는 검사해야하는 fd의 개수가 최소 4개가 된다. 
 
-![[Pasted image 20231121183535.png]]
+![](https://obs3dian.s3.ap-northeast-2.amazonaws.com/IO%20Multiplexing%20/%20Pasted%20image%2020231121183535.png)
 
 따라서 select의 동작순서를 정리하면 다음과 같다.
 

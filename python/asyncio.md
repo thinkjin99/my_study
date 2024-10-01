@@ -39,6 +39,7 @@ ___
 
 `asyncio.run()`을 통해 이 문제를 해결할 수 있다. `asyncio.run()`은 이벤트 루프를 생성하는 `asyncio.get_loop()` 와 이벤트 루프를 실행하는`loop.run_until()` 을 합친 메서드이다. `asyncio.run` **이 실행되는 시점이 비동기 프로그램의 시작점(엔트리 포인트)이 되며 이를 통해 일반 함수에서 코루틴을 호출할 수 있다.**
 
+<<<<<<< HEAD
 ![500](https://obs3dian.s3.ap-northeast-2.amazonaws.com/asyncio%20/%20Pasted%20image%2020240904153031.png)
 
 ___

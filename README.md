@@ -1,11 +1,14 @@
-### 개요
-공부하고 학습한 내용을 정리합니다. 
-평소 알게 모르게 넘어갔던 
-지식들을 탄탄히 다지기 위한 내용들을 정리합니다.
+# 정명진의 개발 노트
 
-옵시디언을 기반으로 작성됐습니다.  
-clone해서 옵시디언에서 보시면 편하게 보실 수 있습니다.
+공부하고 실험한 내용을 정리하는 공간입니다. 알게 모르게 넘어갔던 개념을 다시 확인하고, 코드가 동작하는 이유를 이해하기 위해 작성합니다.
 
-[옵시디언 링크](https://obsidian.md/)
+## 주요 주제
 
+- [[python/정리할 파이썬 토픽|Python]]
+- [[django/장고 입문|Django]]
+- [[network/네트워크 첫 걸음|Network]]
+- [[os/커널|Operating System]]
+- [[algorithm/DP|Algorithm]]
+- [[opensource/urllib3/Readme|Open Source]]
 
+이 문서들은 [Obsidian](https://obsidian.md/)으로 작성하고 Quartz로 발행합니다.

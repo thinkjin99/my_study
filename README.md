@@ -9,6 +9,7 @@
 - [[network/네트워크 첫 걸음|Network]]
 - [[os/커널|Operating System]]
 - [[algorithm/DP|Algorithm]]
+- [[portfolio/정명진 이력서|Portfolio]]
 - [[opensource/urllib3/Readme|Open Source]]
 
 이 문서들은 [Obsidian](https://obsidian.md/)으로 작성하고 Quartz로 발행합니다.
